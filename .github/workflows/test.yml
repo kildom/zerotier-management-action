@@ -1,1 +1,21 @@
-
+name: ubuntu-20.04
+on:
+  workflow_dispatch:
+jobs:
+  action:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          mkdir -p /var/lib/zerotier-one
+          echo -n "${{ secrets.IDENTITY }}" > /var/lib/zerotier-one/identity.secret
+          cat identity.secret | sed 's|\(.*\):.*|\1|' > /var/lib/zerotier-one/identity.public
+          groupadd zerotier-one
+          useradd zerotier-one
+          usermod -a -G zerotier-one zerotier-one
+          chwon zerotier-one:zerotier-one /var/lib/zerotier-one/identity.secret
+          chwon zerotier-one:zerotier-one /var/lib/zerotier-one/identity.public
+          sudo chmod 600 "/var/lib/zerotier-one/identity.secret"
+          sudo curl -s https://install.zerotier.com | sudo bash
+          sudo zerotier-cli join ${{ secrets.NETWORK_ID }}
+          sleep 6000
