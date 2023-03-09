@@ -12,5 +12,6 @@ outputs:
     description: 'The IP address assigned to the node'
 runs:
   using: 'node16'
-  main: 'dist/index.js'
-  post: 'dist/cleanup.js'
+  #pre: 'dist/pre.js'
+  main: 'dist/main.js'
+  post: 'dist/post.js'
