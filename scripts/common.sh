@@ -33,6 +33,7 @@ function cleanup_zerotier {
     sudo zerotier-cli leave $INPUT_NETWORK_ID
     i=0
     while [[ $(sudo zerotier-cli listnetworks | grep $INPUT_NETWORK_ID) ]]; do
+        sudo zerotier-cli listnetworks
         echo "Still in the network. Waiting..."
         sleep 1
         if [[ "$i" == "60" ]]; then break; fi
