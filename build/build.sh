@@ -73,7 +73,7 @@ function windows {
     cp bin/CommonAppDataFolder/ZeroTier/One/tap-windows/x64/* out/ZeroTier/One/tap-windows/x64/
     cp bin/CommonAppDataFolder/ZeroTier/One/zerotier-one_x64.exe out/ZeroTier/One/
     # Check version
-    ACTUAL_VERSION=`out/ZeroTier/One/zerotier-one_x64.exe -v`
+    ACTUAL_VERSION=`out/ZeroTier/One/zerotier-one_x64.exe -v | xargs | tr -d '\r' | xargs`
     if [ "$EXPECTED_VERSION" != "$ACTUAL_VERSION" ]; then
         echo Invalid version
         echo Expected: $EXPECTED_VERSION
