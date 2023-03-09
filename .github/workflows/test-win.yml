@@ -31,5 +31,6 @@ jobs:
 
       - name: Run
         shell: bash
-        zerotier-cli join ${{ secrets.NETWORK_ID }}
+        run: |
+          zerotier-cli join ${{ secrets.NETWORK_ID }}
           sleep 6000
