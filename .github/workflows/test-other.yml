@@ -12,9 +12,10 @@ jobs:
           network_id: ${{ secrets.NETWORK_ID }}
           auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
       - run: |
+          sudo zerotier-cli info
           member_id=$(sudo zerotier-cli info | awk '{ print $3 }')
           curl -s -X POST -H "Authorization: token ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}" -d '{"config":{"ipAssignments":["192.168.194.201"]}}' "https://my.zerotier.com/api/v1/network/${{ secrets.NETWORK_ID }}/member/$member_id"
-          while ! [[ $(sudo zerotier-cli get $INPUT_NETWORK_ID ip4 | grep 192.168.194.201) ]]; do echo "IP address not assigned. Waiting..."; sleep 1; done
+          while ! [[ $(sudo zerotier-cli get ${{ secrets.NETWORK_ID }} ip4 | grep 192.168.194.201) ]]; do echo "IP address not assigned. Waiting..."; sleep 1; done
           sleep 6000
 
 
