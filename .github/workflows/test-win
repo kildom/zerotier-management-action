@@ -1,0 +1,35 @@
+name: windows-latest
+on:
+  workflow_dispatch:
+jobs:
+  action:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Prepare system
+        shell: cmd
+        run: |
+          echo ZEROTIER_DIR=%ProgramData%\ZeroTier\One>> %GITHUB_ENV%
+          echo %ProgramFiles%\ZeroTier\One>> %GITHUB_PATH%
+          echo %ProgramFiles(x86)%\ZeroTier\One>> %GITHUB_PATH%
+          
+      - name: Id
+        shell: bash
+        run: |
+          mkdir -p $ZEROTIER_DIR
+          echo -n "${{ secrets.IDENTITY }}" > identity.secret
+          cat identity.secret | sed 's|\(.*\):.*|\1|' > identity.public
+          cp identity.secret $ZEROTIER_DIR/
+          cp identity.public $ZEROTIER_DIR/
+          
+      - name: Install ZeroTier
+        shell: cmd
+        run: |
+          curl -L -o install.msi https://download.zerotier.com/dist/ZeroTier%%20One.msi
+          msiexec /quiet /qn /i install.msi
+
+      - name: Run
+        shell: bash
+        zerotier-cli join ${{ secrets.NETWORK_ID }}
+          sleep 6000
