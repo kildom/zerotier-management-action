@@ -32,5 +32,5 @@ jobs:
       - name: Run
         shell: bash
         run: |
-          zerotier-cli join ${{ secrets.NETWORK_ID }}
+          zerotier-cli.bat join ${{ secrets.NETWORK_ID }}
           sleep 6000
