@@ -21,16 +21,23 @@ function setup_zerotier {
     sudo zerotier-cli join $INPUT_NETWORK_ID
     echo "You have to authorize this node in ZeroTier Central admin panel if this is the first use of the identity in the network."
     while ! [[ $(sudo zerotier-cli info | grep ONLINE) ]]; do echo "Not connected. Waiting..."; sleep 1; done
-    while ! (sudo zerotier-cli -j listnetworks | node dist/tools.js assigned); do echo "IP address not assigned. Waiting..."; sleep 1; done
-    sudo zerotier-cli -j listnetworks | node dist/tools.js ip > $OUTPUT_IP
+    while ! [[ $(sudo zerotier-cli listnetworks | grep $INPUT_NETWORK_ID) ]]; do echo "Not in the network. Waiting..."; sleep 1; done
+    while ! [[ $(sudo zerotier-cli get $INPUT_NETWORK_ID ip4) ]]; do echo "IP address not assigned. Waiting..."; sleep 1; done
+    sudo zerotier-cli get $INPUT_NETWORK_ID ip4 > $OUTPUT_IP
     echo IP address: `cat $OUTPUT_IP`
 }
 
 function cleanup_zerotier {
-    # action inputs: INPUT_IDENTITY, INPUT_NETWORK_ID
-    # parameters: ZEROTIER_DIR
+    # action inputs: INPUT_NETWORK_ID
 
     sudo zerotier-cli leave $INPUT_NETWORK_ID
-    while [[ $(sudo zerotier-cli info | grep ONLINE) ]]; do echo "Still connected. Waiting..."; sleep 1; done
+    i=0
+    while [[ $(sudo zerotier-cli listnetworks | grep $INPUT_NETWORK_ID) ]]; do
+        echo "Still in the network. Waiting..."
+        sleep 1
+        if [[ "$i" == "60" ]]; then break; fi
+        ((i++))
+    done
+    sleep 1;
     echo "Disconnected"
 }
