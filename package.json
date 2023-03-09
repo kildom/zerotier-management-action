@@ -1,0 +1,26 @@
+{
+  "name": "zerotier-const-id-action",
+  "private": true,
+  "version": "0.1.0",
+  "description": "GitHub Action that joins ZeroTier-One using predefined identity provided as input.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://kildom@github.com/kildom/zerotier-const-id-action.git"
+  },
+  "keywords": [
+    "vpn",
+    "zerotier",
+    "github",
+    "action"
+  ],
+  "author": "kildom",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kildom/zerotier-const-id-action/issues"
+  },
+  "homepage": "https://github.com/kildom/zerotier-const-id-action#readme"
+}
