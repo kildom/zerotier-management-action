@@ -5,7 +5,7 @@
   "description": "GitHub Action that joins ZeroTier-One using predefined identity provided as input.",
   "main": "index.js",
   "scripts": {
-    "build": "npx esbuild index.js --bundle --sourcemap --platform=node --target=node16 --outfile=dist/index.js && npx esbuild cleanup.js --bundle --sourcemap --platform=node --target=node16 --outfile=dist/cleanup.js"
+    "build": "npx esbuild src/index.ts --bundle --sourcemap --platform=node --target=node16 --outfile=dist/index.js && npx esbuild src/cleanup.ts --bundle --sourcemap --platform=node --target=node16 --outfile=dist/cleanup.js"
   },
   "repository": {
     "type": "git",
@@ -24,10 +24,10 @@
   },
   "homepage": "https://github.com/kildom/zerotier-const-id-action#readme",
   "dependencies": {
-    "@actions/core": "^1.10.0",
-    "@actions/github": "^5.1.1"
+    "@actions/core": "^1.10.0"
   },
   "devDependencies": {
+    "@types/node": "^18.14.6",
     "esbuild": "^0.17.11"
   }
 }

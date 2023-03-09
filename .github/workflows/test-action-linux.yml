@@ -1,4 +1,4 @@
-name: Test myself
+name: Test myself - ubuntu
 on:
   workflow_dispatch:
 jobs:
@@ -11,3 +11,5 @@ jobs:
         with:
           identity: ${{ secrets.IDENTITY }}
           network-id: ${{ secrets.NETWORK_ID }}
+      - run: |
+          sleep 6000
