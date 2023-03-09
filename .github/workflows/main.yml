@@ -1,0 +1,33 @@
+name: Build
+
+on:
+  - workflow_call
+  - workflow_dispatch
+  
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            params1: "ubuntu 20"
+            params2: "ubuntu 22"
+          - os: windows-latest
+            params1: "windows"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checking out our code
+        uses: actions/checkout@master
+      - name: Build
+        shell: bash
+        run: |
+          build/build.sh ${{ matrix.params1 }}
+          build/build.sh ${{ matrix.params2 }}
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: results
+          path: build/tmp/*.tar.xz
+          if-no-files-found: error
+          retention-days: 2
+  
