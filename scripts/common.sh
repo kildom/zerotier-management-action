@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e -E -o pipefail
+#set -e -E -o pipefail
 trap 'err=$? && echo "::error::$BASH_SOURCE:$LINENO: Failed with status $err at command: $BASH_COMMAND" && exit $err' ERR
 SCRIPTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
