@@ -9,9 +9,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-20
+          - os: ubuntu-20.04
             params: "ubuntu 20"
-          - os: ubuntu-22
+          - os: ubuntu-22.04
             params: "ubuntu 22"
           - os: windows-latest
             params: "windows"
