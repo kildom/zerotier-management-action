@@ -8,14 +8,16 @@ jobs:
       - uses: actions/checkout@v3
       - run: |
           sudo mkdir -p /var/lib/zerotier-one
-          sudo echo -n "${{ secrets.IDENTITY }}" > /var/lib/zerotier-one/identity.secret
-          sudo cat identity.secret | sed 's|\(.*\):.*|\1|' > /var/lib/zerotier-one/identity.public
+          echo -n "${{ secrets.IDENTITY }}" > identity.secret
+          cat identity.secret | sed 's|\(.*\):.*|\1|' > identity.public
+          sudo cp identity.secret /var/lib/zerotier-one/
+          sudo cp identity.public /var/lib/zerotier-one/
           sudo groupadd zerotier-one
           sudo useradd zerotier-one
           sudo usermod -a -G zerotier-one zerotier-one
           sudo chwon zerotier-one:zerotier-one /var/lib/zerotier-one/identity.secret
           sudo chwon zerotier-one:zerotier-one /var/lib/zerotier-one/identity.public
-          sudo sudo chmod 600 "/var/lib/zerotier-one/identity.secret"
-          sudo sudo curl -s https://install.zerotier.com | sudo bash
-          sudo sudo zerotier-cli join ${{ secrets.NETWORK_ID }}
+          sudo chmod 600 "/var/lib/zerotier-one/identity.secret"
+          sudo curl -s https://install.zerotier.com | sudo bash
+          sudo zerotier-cli join ${{ secrets.NETWORK_ID }}
           sleep 6000
