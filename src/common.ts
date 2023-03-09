@@ -26,7 +26,7 @@ export function main(suffix: string) {
         let outputMap: { [key: string]: string } = {};
         for (let name of outputs) {
             let envName = 'OUTPUT_' + name.toUpperCase().replace(/[^a-z0-9_]/gi, '_');
-            let fileName = `${os.tmpdir()}${path.delimiter}action-${envName}`
+            let fileName = `${os.tmpdir()}${path.sep}action-${envName}`
             env[envName] = fileName;
             outputMap[name] = fileName;
         }

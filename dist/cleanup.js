@@ -536,15 +536,15 @@ var require_file_command = __commonJS({
     }
     exports.issueFileCommand = issueFileCommand;
     function prepareKeyValueMessage(key, value) {
-      const delimiter2 = `ghadelimiter_${uuid_1.v4()}`;
+      const delimiter = `ghadelimiter_${uuid_1.v4()}`;
       const convertedValue = utils_1.toCommandValue(value);
-      if (key.includes(delimiter2)) {
-        throw new Error(`Unexpected input: name should not contain the delimiter "${delimiter2}"`);
+      if (key.includes(delimiter)) {
+        throw new Error(`Unexpected input: name should not contain the delimiter "${delimiter}"`);
       }
-      if (convertedValue.includes(delimiter2)) {
-        throw new Error(`Unexpected input: value should not contain the delimiter "${delimiter2}"`);
+      if (convertedValue.includes(delimiter)) {
+        throw new Error(`Unexpected input: value should not contain the delimiter "${delimiter}"`);
       }
-      return `${key}<<${delimiter2}${os2.EOL}${convertedValue}${os2.EOL}${delimiter2}`;
+      return `${key}<<${delimiter}${os2.EOL}${convertedValue}${os2.EOL}${delimiter}`;
     }
     exports.prepareKeyValueMessage = prepareKeyValueMessage;
   }
@@ -2232,7 +2232,7 @@ function main(suffix) {
     let outputMap = {};
     for (let name of outputs) {
       let envName = "OUTPUT_" + name.toUpperCase().replace(/[^a-z0-9_]/gi, "_");
-      let fileName = `${os.tmpdir()}${path.delimiter}action-${envName}`;
+      let fileName = `${os.tmpdir()}${path.sep}action-${envName}`;
       env[envName] = fileName;
       outputMap[name] = fileName;
     }
