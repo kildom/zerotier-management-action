@@ -9,5 +9,5 @@ inputs:
     required: true
 runs:
   using: 'node16'
-  main: 'index.js'
-  post: 'cleanup.js'
+  main: 'dist/index.js'
+  post: 'dist/cleanup.js'
