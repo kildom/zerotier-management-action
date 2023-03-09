@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -e -E -o pipefail
+set -e -E -o pipefail
 trap 'err=$? && echo "::error::$BASH_SOURCE:$LINENO: Failed with status $err at command: $BASH_COMMAND" && exit $err' ERR
 SCRIPTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
@@ -25,27 +25,4 @@ function setup_zerotier {
     while ! [[ $(sudo zerotier-cli get $INPUT_NETWORK_ID ip4) ]]; do echo "IP address not assigned. Waiting..."; sleep 1; done
     sudo zerotier-cli get $INPUT_NETWORK_ID ip4 > $OUTPUT_IP
     echo IP address: `cat $OUTPUT_IP`
-}
-
-function cleanup_zerotier {
-    # action inputs: INPUT_NETWORK_ID
-
-    sudo zerotier-cli leave $INPUT_NETWORK_ID
-    i=0
-    while [[ $(sudo zerotier-cli listnetworks | grep $INPUT_NETWORK_ID) ]]; do
-        echo -------------
-        sudo zerotier-cli listnetworks
-        echo -------------
-        sudo zerotier-cli listnetworks | grep $INPUT_NETWORK_ID
-        echo -------------
-        sudo zerotier-cli listnetworks | grep $INPUT_NETWORK_ID > a.txt
-        ls -la
-        echo -------------
-        echo "Still in the network. Waiting..."
-        sleep 1
-        if [[ "$i" == "60" ]]; then break; fi
-        ((i++))
-    done
-    sleep 1;
-    echo "Disconnected"
 }
