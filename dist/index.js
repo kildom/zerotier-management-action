@@ -98,11 +98,11 @@ var require_command = __commonJS({
     };
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.issue = exports.issueCommand = void 0;
-    var os = __importStar(require("os"));
+    var os2 = __importStar(require("os"));
     var utils_1 = require_utils();
     function issueCommand(command, properties, message) {
       const cmd = new Command(command, properties, message);
-      process.stdout.write(cmd.toString() + os.EOL);
+      process.stdout.write(cmd.toString() + os2.EOL);
     }
     exports.issueCommand = issueCommand;
     function issue(name, message = "") {
@@ -518,8 +518,8 @@ var require_file_command = __commonJS({
     };
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.prepareKeyValueMessage = exports.issueFileCommand = void 0;
-    var fs = __importStar(require("fs"));
-    var os = __importStar(require("os"));
+    var fs2 = __importStar(require("fs"));
+    var os2 = __importStar(require("os"));
     var uuid_1 = (init_esm_node(), __toCommonJS(esm_node_exports));
     var utils_1 = require_utils();
     function issueFileCommand(command, message) {
@@ -527,24 +527,24 @@ var require_file_command = __commonJS({
       if (!filePath) {
         throw new Error(`Unable to find environment variable for file command ${command}`);
       }
-      if (!fs.existsSync(filePath)) {
+      if (!fs2.existsSync(filePath)) {
         throw new Error(`Missing file at path: ${filePath}`);
       }
-      fs.appendFileSync(filePath, `${utils_1.toCommandValue(message)}${os.EOL}`, {
+      fs2.appendFileSync(filePath, `${utils_1.toCommandValue(message)}${os2.EOL}`, {
         encoding: "utf8"
       });
     }
     exports.issueFileCommand = issueFileCommand;
     function prepareKeyValueMessage(key, value) {
-      const delimiter = `ghadelimiter_${uuid_1.v4()}`;
+      const delimiter2 = `ghadelimiter_${uuid_1.v4()}`;
       const convertedValue = utils_1.toCommandValue(value);
-      if (key.includes(delimiter)) {
-        throw new Error(`Unexpected input: name should not contain the delimiter "${delimiter}"`);
+      if (key.includes(delimiter2)) {
+        throw new Error(`Unexpected input: name should not contain the delimiter "${delimiter2}"`);
       }
-      if (convertedValue.includes(delimiter)) {
-        throw new Error(`Unexpected input: value should not contain the delimiter "${delimiter}"`);
+      if (convertedValue.includes(delimiter2)) {
+        throw new Error(`Unexpected input: value should not contain the delimiter "${delimiter2}"`);
       }
-      return `${key}<<${delimiter}${os.EOL}${convertedValue}${os.EOL}${delimiter}`;
+      return `${key}<<${delimiter2}${os2.EOL}${convertedValue}${os2.EOL}${delimiter2}`;
     }
     exports.prepareKeyValueMessage = prepareKeyValueMessage;
   }
@@ -1961,7 +1961,7 @@ var require_path_utils = __commonJS({
     };
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.toPlatformPath = exports.toWin32Path = exports.toPosixPath = void 0;
-    var path = __importStar(require("path"));
+    var path2 = __importStar(require("path"));
     function toPosixPath(pth) {
       return pth.replace(/[\\]/g, "/");
     }
@@ -1971,7 +1971,7 @@ var require_path_utils = __commonJS({
     }
     exports.toWin32Path = toWin32Path;
     function toPlatformPath(pth) {
-      return pth.replace(/[/\\]/g, path.sep);
+      return pth.replace(/[/\\]/g, path2.sep);
     }
     exports.toPlatformPath = toPlatformPath;
   }
@@ -2041,8 +2041,8 @@ var require_core = __commonJS({
     var command_1 = require_command();
     var file_command_1 = require_file_command();
     var utils_1 = require_utils();
-    var os = __importStar(require("os"));
-    var path = __importStar(require("path"));
+    var os2 = __importStar(require("os"));
+    var path2 = __importStar(require("path"));
     var oidc_utils_1 = require_oidc_utils();
     var ExitCode;
     (function(ExitCode2) {
@@ -2070,7 +2070,7 @@ var require_core = __commonJS({
       } else {
         command_1.issueCommand("add-path", {}, inputPath);
       }
-      process.env["PATH"] = `${inputPath}${path.delimiter}${process.env["PATH"]}`;
+      process.env["PATH"] = `${inputPath}${path2.delimiter}${process.env["PATH"]}`;
     }
     exports.addPath = addPath;
     function getInput2(name, options) {
@@ -2104,15 +2104,15 @@ var require_core = __commonJS({
 Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
     }
     exports.getBooleanInput = getBooleanInput;
-    function setOutput(name, value) {
+    function setOutput2(name, value) {
       const filePath = process.env["GITHUB_OUTPUT"] || "";
       if (filePath) {
         return file_command_1.issueFileCommand("OUTPUT", file_command_1.prepareKeyValueMessage(name, value));
       }
-      process.stdout.write(os.EOL);
+      process.stdout.write(os2.EOL);
       command_1.issueCommand("set-output", { name }, utils_1.toCommandValue(value));
     }
-    exports.setOutput = setOutput;
+    exports.setOutput = setOutput2;
     function setCommandEcho(enabled) {
       command_1.issue("echo", enabled ? "on" : "off");
     }
@@ -2143,7 +2143,7 @@ Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
     }
     exports.notice = notice;
     function info(message) {
-      process.stdout.write(message + os.EOL);
+      process.stdout.write(message + os2.EOL);
     }
     exports.info = info;
     function startGroup(name) {
@@ -2207,30 +2207,52 @@ Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
 });
 
 // src/common.ts
+var os = __toESM(require("os"));
+var fs = __toESM(require("fs"));
+var path = __toESM(require("path"));
 var core = __toESM(require_core());
 var import_child_process = require("child_process");
-var process2 = __toESM(require("process"));
 var inputs = ["network-id", "identity"];
+var outputs = ["ip"];
 function main(suffix) {
   try {
-    let shell, ext, os = process2.platform;
-    if (os == "win32") {
+    let shell, ext, platform = process.platform;
+    if (platform == "win32") {
       shell = "cmd";
       ext = ".bat";
     } else {
       shell = "bash";
       ext = ".sh";
     }
-    let env2 = { ...process2.env };
+    let env = { ...process.env };
     for (let name of inputs) {
       let envName = "INPUT_" + name.toUpperCase().replace(/[^a-z0-9_]/gi, "_");
-      env2[envName] = core.getInput(name);
+      env[envName] = core.getInput(name);
     }
-    (0, import_child_process.execFileSync)(shell, [`${__dirname}/../scripts/${os}${suffix}${ext}`], {
+    let outputMap = {};
+    for (let name of outputs) {
+      let envName = "OUTPUT_" + name.toUpperCase().replace(/[^a-z0-9_]/gi, "_");
+      let fileName = `${os.tmpdir()}${path.delimiter}action-${envName}`;
+      env[envName] = fileName;
+      outputMap[name] = fileName;
+    }
+    (0, import_child_process.execFileSync)(shell, [`${__dirname}/../scripts/${platform}${suffix}${ext}`], {
       stdio: "inherit",
-      env: env2,
+      env,
       input: ""
     });
+    for (let [name, fileName] of Object.entries(outputMap)) {
+      if (fs.existsSync(fileName)) {
+        let value = fs.readFileSync(fileName, "utf8");
+        if (value.endsWith("\n")) {
+          value = value.substring(0, value.length - 1);
+        }
+        if (value.endsWith("\r")) {
+          value = value.substring(0, value.length - 1);
+        }
+        core.setOutput(name, value);
+      }
+    }
   } catch (err) {
     core.setFailed(err.message);
   }

@@ -7,6 +7,9 @@ inputs:
   identity:
     description: 'Identity secret key'
     required: true
+outputs:
+  ip:
+    description: 'The IP address assigned to the node'
 runs:
   using: 'node16'
   main: 'dist/index.js'

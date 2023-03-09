@@ -7,6 +7,7 @@ SCRIPTS_DIR=$(realpath $SCRIPTS_DIR)
 
 function setup_zerotier {
     # action inputs: INPUT_IDENTITY, INPUT_NETWORK_ID
+    # action outputs: OUTPUT_IP
     # parameters: ZEROTIER_DIR, ZEROTIER_OWNER
 
     sudo mkdir -p "$ZEROTIER_DIR"
@@ -19,6 +20,18 @@ function setup_zerotier {
     sudo chmod 600 "$ZEROTIER_DIR/identity.secret"
     sudo curl -s https://install.zerotier.com | sudo bash
     sudo zerotier-cli join $INPUT_NETWORK_ID
-
+    echo "You have to authorize this node in ZeroTier Central admin panel if this is the first use of the identity in the network."
+    while ! [[ $(sudo zerotier-cli info | grep ONLINE) ]]; do echo "Not connected. Waiting..."; sleep 1; done
+    while ! (sudo zerotier-cli -j listnetworks | node dist/tools.js assigned); do echo "IP address not assigned. Waiting..."; sleep 1; done
+    sudo zerotier-cli -j listnetworks | node dist/tools.js ip > $OUTPUT_IP
+    echo IP address: `cat $OUTPUT_IP`
 }
 
+function cleanup_zerotier {
+    # action inputs: INPUT_IDENTITY, INPUT_NETWORK_ID
+    # parameters: ZEROTIER_DIR
+
+    sudo zerotier-cli leave $INPUT_NETWORK_ID
+    while [[ $(sudo zerotier-cli info | grep ONLINE) ]]; do echo "Still connected. Waiting..."; sleep 1; done
+    echo "Disconnected"
+}
