@@ -9,11 +9,12 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            params1: "ubuntu 20"
-            params2: "ubuntu 22"
+          - os: ubuntu-20
+            params: "ubuntu 20"
+          - os: ubuntu-22
+            params: "ubuntu 22"
           - os: windows-latest
-            params1: "windows"
+            params: "windows"
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checking out our code
@@ -21,8 +22,7 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          build/build.sh ${{ matrix.params1 }}
-          build/build.sh ${{ matrix.params2 }}
+          build/build.sh ${{ matrix.params }}
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v3.1.2
         with:
@@ -30,4 +30,3 @@ jobs:
           path: build/tmp/*.tar.xz
           if-no-files-found: error
           retention-days: 2
-  
