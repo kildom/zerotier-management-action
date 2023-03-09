@@ -17,16 +17,24 @@ source $SCRIPTS_DIR/version.sh
 mkdir -p "$TMP_DIR"
 cd "$TMP_DIR"
 
+if wget --version > /dev/null 2>&1; then
+    DOWNLOAD="wget -O"
+else
+    DOWNLOAD="curl --output"
+fi
+
+echo $DOWNLOAD
+
 function ubuntu {
     mkdir -p $1
     pushd $1
     # Download index and find latest version
     URL_NAME=UBUNTU${1}_URL
     URL=${!URL_NAME}
-    [ -e a.html ] || wget -O a.html "$URL"
+    [ -e a.html ] || $DOWNLOAD a.html "$URL"
     LATEST=$(python $SCRIPTS_DIR/find-latest.py a.html "$UBUNTU_FILE_PATTERN")
     # Download DEB package
-    [ -e a.deb ] || wget -O a.deb "$URL/$LATEST"
+    [ -e a.deb ] || $DOWNLOAD a.deb "$URL/$LATEST"
     # Extract data from the package
     ar x a.deb
     [ -e data.tar.xz ] && tar -xJf data.tar.xz
@@ -50,7 +58,7 @@ function windows {
     mkdir -p win
     pushd win
     # Download Windows MSI
-    [ -e a.msi ] || wget -O a.msi "$WINDOWS_URL"
+    [ -e a.msi ] || $DOWNLOAD a.msi "$WINDOWS_URL"
     # Prepare extraction directory
     rm -Rf bin
     TARGETDIR=$(realpath ./bin)
