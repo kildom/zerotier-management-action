@@ -2230,11 +2230,11 @@ var Tokenizer = class {
   }
   tokenize(text) {
     text = text.trim();
-    let endOfCondition = new RegExp(`"\\s*$|"\\s+(?:"(?:${this.fields.map((x) => escapeRegExp(x)).join("|")})#?[!=~\\$\\^\\*\\/]=|\\|(?:OR|AND|NOT|BEGIN|END)\\|)`);
+    let endOfCondition = new RegExp(`\\]\\s*$|\\]\\s+(?:\\[(?:${this.fields.map((x) => escapeRegExp(x)).join("|")})[!=~\\$\\^\\*\\/]=|\\|(?:OR|AND|NOT|BEGIN|END)\\|)`);
     this.tokens = [];
     while (text !== "") {
       let token;
-      if (text[0] == '"') {
+      if (text[0] == "[") {
         let m = endOfCondition.exec(text);
         if (!m) {
           throw new Error(`Query syntax error: unterminated condition near: ${text}`);
@@ -2306,7 +2306,7 @@ function parseLeaf(tokenizer) {
   } else {
     let token = tokenizer.get();
     token = token.substring(1, token.length - 1).trimStart();
-    let m = token.match(/^(.*?)(#?[!=~\$\^\*\/])=([\S\s]*)$/);
+    let m = token.match(/^(.*?)([!=~\$\^\*\/])=([\S\s]*)$/);
     if (m === null) {
       throw new Error(`Query syntax error: invalid condition near: ${token}`);
     }
@@ -2321,29 +2321,28 @@ function parseLeaf(tokenizer) {
 }
 function matchCondition(node, field, condition, value) {
   let escapedValue = escapeRegExp(value);
-  let flags = condition.startsWith("#") ? "s" : "si";
   let re;
-  switch (condition.replace("#", "")) {
+  switch (condition) {
     case "=":
-      re = new RegExp("^" + escapedValue + "$", flags);
+      re = new RegExp("^" + escapedValue + "$", "si");
       break;
     case "!":
-      re = new RegExp("^(?!" + escapedValue + "$)", flags);
+      re = new RegExp("^(?!" + escapedValue + "$)", "si");
       break;
     case "~":
-      re = new RegExp("(^|[\\s\\r\\n])" + escapedValue + "([\\s\\r\\n]|$)", flags);
+      re = new RegExp("(^|[\\s\\r\\n])" + escapedValue + "([\\s\\r\\n]|$)", "si");
       break;
     case "$":
-      re = new RegExp(escapedValue + "$", flags);
+      re = new RegExp(escapedValue + "$", "si");
       break;
     case "^":
-      re = new RegExp("^" + escapedValue, flags);
+      re = new RegExp("^" + escapedValue, "si");
       break;
     case "*":
-      re = new RegExp(escapedValue, flags);
+      re = new RegExp(escapedValue, "si");
       break;
     case "/":
-      re = new RegExp(value, flags);
+      re = new RegExp(value, "si");
       break;
     default:
       throw new Error();
@@ -2525,19 +2524,13 @@ function checkAddresses(list) {
 }
 var selectorFields = `
     nodeId
-    hidden
     name
     description
-    physicalAddress
-    clientVersion
-    activeBridge
     capabilities
     identity
     address
     IPv4Address
     IPv6Address
-    noAutoAssignIps
-    tegs-
     `.split(/\s+/s).map((x) => x.trim()).filter((x) => x);
 var networks;
 var networkId;
@@ -2572,18 +2565,13 @@ async function waitForNodes() {
       let attr = {
         __node__: node,
         nodeId: node.nodeId || "",
-        hidden: node.hidden ? "true" : "false",
         name: node.name || "",
         description: node.description || "",
-        physicalAddress: node.physicalAddress || "",
-        clientVersion: node.clientVersion || "",
-        activeBridge: node.config.activeBridge ? "true" : "false",
         capabilities: capabilities.join(" "),
         identity: node.config.identity || "",
         address: outputAddress(node.config.ipAssignments),
         IPv4Address: outputAddress(node.config.ipAssignments, ["4"]),
-        IPv6Address: outputAddress(node.config.ipAssignments, ["6"]),
-        noAutoAssignIps: node.config.noAutoAssignIps ? "true" : "false"
+        IPv6Address: outputAddress(node.config.ipAssignments, ["6"])
       };
       for (let [id, value] of ((_c = node.config) == null ? void 0 : _c.tags) || {}) {
         if (value === false)

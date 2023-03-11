@@ -145,15 +145,12 @@ function execCLI(...args: string[]): any {
 }
 
 interface NetworkMemberData {
-    hidden?: boolean;
     name?: string;
     description?: string;
     config?: {
-        activeBridge?: boolean;
         authorized?: boolean;
         capabilities?: number[];
         ipAssignments?: string[];
-        noAutoAssignIps?: boolean;
         tags?: [number, number][];
     }
 }
@@ -197,19 +194,13 @@ function checkAddresses(list: string[]): boolean {
 
 let selectorFields = `
     nodeId
-    hidden
     name
     description
-    physicalAddress
-    clientVersion
-    activeBridge
     capabilities
     identity
     address
     IPv4Address
     IPv6Address
-    noAutoAssignIps
-    tegs-
     `.split(/\s+/s).map(x => x.trim()).filter(x => x);
 
 
@@ -250,18 +241,13 @@ async function waitForNodes() {
             let attr = {
                 __node__: node,
                 nodeId: node.nodeId || '',
-                hidden: node.hidden ? 'true' : 'false',
                 name: node.name || '',
                 description: node.description || '',
-                physicalAddress: node.physicalAddress || '',
-                clientVersion: node.clientVersion || '',
-                activeBridge: node.config.activeBridge ? 'true' : 'false',
                 capabilities: capabilities.join(' '),
                 identity: node.config.identity || '',
                 address: outputAddress(node.config.ipAssignments),
                 IPv4Address: outputAddress(node.config.ipAssignments, ['4']),
                 IPv6Address: outputAddress(node.config.ipAssignments, ['6']),
-                noAutoAssignIps: node.config.noAutoAssignIps ? 'true' : 'false',
             };
 
             for (let [id, value] of (node.config?.tags || {}) as [number, number | boolean][]) {

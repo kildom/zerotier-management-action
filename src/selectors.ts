@@ -20,11 +20,11 @@ class Tokenizer {
 
     private tokenize(text: string) {
         text = text.trim();
-        let endOfCondition = new RegExp(`"\\s*$|"\\s+(?:"(?:${this.fields.map(x => escapeRegExp(x)).join('|')})#?[!=~\\$\\^\\*\\/]=|\\|(?:OR|AND|NOT|BEGIN|END)\\|)`);
+        let endOfCondition = new RegExp(`\\]\\s*$|\\]\\s+(?:\\[(?:${this.fields.map(x => escapeRegExp(x)).join('|')})[!=~\\$\\^\\*\\/]=|\\|(?:OR|AND|NOT|BEGIN|END)\\|)`);
         this.tokens = [];
         while (text !== '') {
             let token: string;
-            if (text[0] == '"') {
+            if (text[0] == '[') {
                 let m = endOfCondition.exec(text);
                 if (!m) {
                     throw new Error(`Query syntax error: unterminated condition near: ${text}`);
@@ -98,7 +98,7 @@ function parseLeaf<T>(tokenizer: Tokenizer): Selector<T> {
     } else {
         let token = tokenizer.get();
         token = token.substring(1, token.length - 1).trimStart();
-        let m = token.match(/^(.*?)(#?[!=~\$\^\*\/])=([\S\s]*)$/);
+        let m = token.match(/^(.*?)([!=~\$\^\*\/])=([\S\s]*)$/);
         if (m === null) {
             throw new Error(`Query syntax error: invalid condition near: ${token}`);
         }
@@ -113,29 +113,28 @@ function parseLeaf<T>(tokenizer: Tokenizer): Selector<T> {
 
 function matchCondition<T>(node: T, field: string, condition: string, value: string): boolean {
     let escapedValue = escapeRegExp(value);
-    let flags = condition.startsWith('#') ? 's' : 'si';
     let re: RegExp;
-    switch (condition.replace('#', '')) {
+    switch (condition) {
         case '=':
-            re = new RegExp('^' + escapedValue + '$', flags);
+            re = new RegExp('^' + escapedValue + '$', 'si');
             break;
         case '!':
-            re = new RegExp('^(?!' + escapedValue + '$)', flags);
+            re = new RegExp('^(?!' + escapedValue + '$)', 'si');
             break;
         case '~':
-            re = new RegExp('(^|[\\s\\r\\n])' + escapedValue + '([\\s\\r\\n]|$)', flags);
+            re = new RegExp('(^|[\\s\\r\\n])' + escapedValue + '([\\s\\r\\n]|$)', 'si');
             break;
         case '$':
-            re = new RegExp(escapedValue + '$', flags);
+            re = new RegExp(escapedValue + '$', 'si');
             break;
         case '^':
-            re = new RegExp('^' + escapedValue, flags);
+            re = new RegExp('^' + escapedValue, 'si');
             break;
         case '*':
-            re = new RegExp(escapedValue, flags);
+            re = new RegExp(escapedValue, 'si');
             break;
         case '/':
-            re = new RegExp(value, flags);
+            re = new RegExp(value, 'si');
             break;
         default:
             throw new Error();
