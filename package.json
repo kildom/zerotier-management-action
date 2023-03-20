@@ -5,7 +5,8 @@
   "description": "GitHub Action that joins ZeroTier-One using predefined identity provided as input.",
   "main": "index.js",
   "scripts": {
-    "build": "npx esbuild src/main.ts --bundle --sourcemap --platform=node --target=node16 --outfile=dist/main.js"
+    "build": "npx esbuild src/main.ts --bundle --sourcemap --platform=node --target=node16 --outfile=dist/main.js",
+    "check": "npx tsc --project tsconfig.check.json"
   },
   "repository": {
     "type": "git",
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "@types/node": "^18.14.6",
-    "esbuild": "^0.17.11"
+    "esbuild": "^0.17.11",
+    "typescript": "^4.9.5"
   }
 }

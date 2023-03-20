@@ -1,5 +1,6 @@
 
 type Selector<T> = (node: T) => boolean;
+type Attrs = { [key: string]: string };
 
 const END_OF_QUERY = 'end of query';
 
@@ -15,13 +16,13 @@ class Tokenizer {
 
     public constructor(text: string, public fields: string[]) {
         this.index = 0;
+        this.tokens = [];
         this.tokenize(text);
     }
 
     private tokenize(text: string) {
         text = text.trim();
         let endOfCondition = new RegExp(`\\]\\s*$|\\]\\s+(?:\\[(?:${this.fields.map(x => escapeRegExp(x)).join('|')})[!=~\\$\\^\\*\\/]=|\\|(?:OR|AND|NOT|BEGIN|END)\\|)`);
-        this.tokens = [];
         while (text !== '') {
             let token: string;
             if (text[0] == '[') {
@@ -63,7 +64,7 @@ class Tokenizer {
 }
 
 
-function parseOr<T>(tokenizer: Tokenizer): Selector<T> {
+function parseOr<T extends Attrs>(tokenizer: Tokenizer): Selector<T> {
     let a = parseAnd<T>(tokenizer);
     if (tokenizer.match('OR')) {
         let b = parseOr<T>(tokenizer);
@@ -74,7 +75,7 @@ function parseOr<T>(tokenizer: Tokenizer): Selector<T> {
 }
 
 
-function parseAnd<T>(tokenizer: Tokenizer): Selector<T> {
+function parseAnd<T extends Attrs>(tokenizer: Tokenizer): Selector<T> {
     let a = parseLeaf<T>(tokenizer);
     if (tokenizer.match('AND')) {
         let b = parseAnd<T>(tokenizer);
@@ -85,7 +86,7 @@ function parseAnd<T>(tokenizer: Tokenizer): Selector<T> {
 }
 
 
-function parseLeaf<T>(tokenizer: Tokenizer): Selector<T> {
+function parseLeaf<T extends Attrs>(tokenizer: Tokenizer): Selector<T> {
     if (tokenizer.match('NOT')) {
         let x = parseLeaf<T>(tokenizer);
         return (n: T) => { return !x(n); };
@@ -111,7 +112,7 @@ function parseLeaf<T>(tokenizer: Tokenizer): Selector<T> {
 }
 
 
-function matchCondition<T>(node: T, field: string, condition: string, value: string): boolean {
+function matchCondition<T extends Attrs>(node: T, field: string, condition: string, value: string): boolean {
     let escapedValue = escapeRegExp(value);
     let re: RegExp;
     switch (condition) {
@@ -143,7 +144,7 @@ function matchCondition<T>(node: T, field: string, condition: string, value: str
 }
 
 
-export function parseSelectors<T>(text: string, fields: string[]) {
+export function compileSelectors<T extends Attrs>(text: string, fields: string[]) {
     let tokenizer = new Tokenizer(text, fields);
     let selectors: Selector<T>[] = [];
     while (!tokenizer.match(END_OF_QUERY)) {
