@@ -7,13 +7,13 @@ Examples of selectors:
  * `[IPv4Address$=.123]` - IPv4 address ends with `.123`
  * `[IPv6Address!=]` - IPv6 address is not empty
  * `[capabilities~=secure]` - node has `secure` capability set
- * `[tag:os==Linux]` - node has `os` tag set to `Linux`
+ * `[tag:os=Linux]` - node has `os` tag set to `Linux`
  * `[description*=Exclude from CI]` - node description contains `Exclude from CI`
 
 Examples selectors with operators:
- * `|NOT| [description*=Exclude from CI]` - node description does not contain `Exclude from CI`
- * `[address$=.123] |OR| [address$=:0123]` - address ends with `.123` or `:0123`
- * `|NOT| |BEGIN| [name==Server] |OR| [name==Host] |END|` - name is neither `Server` or `Host`
+ * `NOT [description*=Exclude from CI]` - node description does not contain `Exclude from CI`
+ * `[address$=.123] OR [address$=:0123]` - address ends with `.123` or `:0123`
+ * `NOT ([name==Server] OR [name==Host])` - name is neither `Server` nor `Host`
 
 ## Selector syntax
 
@@ -23,7 +23,7 @@ Selectors are case-insensitive.
 
 | Selector syntax | Description |
 |-|-|
-| `[attr==value]` | Represents nodes whose attribute is exactly `value` |
+| `[attr=value]` or `[attr==value]` | Represents nodes whose attribute is exactly `value` |
 | `[attr!=value]` | Represents nodes whose attribute is different than `value` |
 | `[attr~=value]` | Represents nodes whose attribute contain word `value` (words are whitespace-separated) |
 | `[attr^=value]` | Represents nodes whose attribute starts with `value` |
@@ -58,7 +58,7 @@ Operators do usual boolean operations:
 
 | Operator syntax | Description | Precedence |
 |-|-|-|
-| `\|NOT\|` | Logic *NOT* | 1 |
-| `\|AND\|` | Logic *AND* | 2 |
-| `\|OR\|` | Logic *OR* | 3 |
-| `\|BEGIN\| ... \|END\|` | Works like parentheses in other languages | - |
+| `NOT` | Logic *NOT* | 1 |
+| `AND` | Logic *AND* | 2 |
+| `OR` | Logic *OR* | 3 |
+| `( ... )` | Parentheses | - |

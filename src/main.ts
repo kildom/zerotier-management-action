@@ -3,7 +3,7 @@ import * as core from '@actions/core';
 import { inputs, isTimeout, outputs, prepareInputsOutputs, waitInterval, writeOutputs } from './action-in-out';
 import { checkSelfAddresses, outputAddress } from './address';
 import { compileSelectors } from './selectors';
-import { execAPI } from './tz-api';
+import { execAPI } from './zt-api';
 import { execCLI } from './zt-cli';
 
 

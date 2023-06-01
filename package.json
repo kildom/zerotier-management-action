@@ -6,7 +6,8 @@
   "main": "index.js",
   "scripts": {
     "build": "npx esbuild src/main.ts --bundle --sourcemap --platform=node --target=node16 --outfile=dist/main.js",
-    "check": "npx tsc --project tsconfig.check.json"
+    "check": "npx tsc --project tsconfig.check.json",
+    "unit-tests": "npx ts-node tests/tests.ts"
   },
   "repository": {
     "type": "git",
@@ -30,6 +31,7 @@
   "devDependencies": {
     "@types/node": "^18.14.6",
     "esbuild": "^0.17.11",
-    "typescript": "^4.9.5"
+    "typescript": "^4.9.5",
+    "ts-node": "^10.9.1"
   }
 }

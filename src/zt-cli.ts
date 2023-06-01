@@ -1,9 +1,10 @@
 
 import { execFileSync } from 'child_process';
+import { ASSERT_EQ } from '../tests/asserts';
 
 
 let file: string = '';
-let args: string[] = [];
+let execArgs: string[] = [];
 
 
 function prepareCLI() {
@@ -11,7 +12,7 @@ function prepareCLI() {
         return;
     } else if (process.platform !== 'win32') {
         file = 'sudo';
-        args = ['zerotier-cli'];
+        execArgs = ['zerotier-cli'];
     } else {
         let tryPaths = [
             process.env['ProgramFiles'] + '\\ZeroTier\\One\\',
@@ -25,13 +26,13 @@ function prepareCLI() {
             try {
                 execFileSync(tryFile, [...tryArgs, '--version']);
                 file = tryFile;
-                args = tryArgs;
+                execArgs = tryArgs;
                 break;
             } catch (err) { }
         }
     }
     try {
-        execFileSync(file, [...args, '-j', 'status']);
+        execFileSync(file, [...execArgs, '-j', 'status']);
     } catch (err) {
         throw new Error('Cannot execute zerotier-cli');
     }
@@ -40,9 +41,20 @@ function prepareCLI() {
 
 export function execCLI(...args: string[]): any {
     prepareCLI();
-    let res = execFileSync(file, [...args, ...args], {
+    let res = execFileSync(file, [...execArgs, ...args], {
         encoding: 'utf8',
         maxBuffer: 4 * 1024 * 1024,
     });
     return JSON.parse(res);
+}
+
+
+//---------------------------------------------------------------------------------------
+//---------------------------------------- TESTS ----------------------------------------
+//---------------------------------------------------------------------------------------
+
+
+export function test() {
+    let json = execCLI('-j', 'info');
+    ASSERT_EQ(json.address.length, 10);
 }

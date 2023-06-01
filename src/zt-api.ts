@@ -1,6 +1,7 @@
 import { IncomingMessage } from "http";
 import { request } from "https";
 import { inputs } from "./action-in-out";
+import { ASSERT_EQ } from "../tests/asserts";
 
 
 export async function execAPI(method: 'GET' | 'POST' | 'DELETE', path: string, body?: any) {
@@ -41,4 +42,17 @@ export async function execAPI(method: 'GET' | 'POST' | 'DELETE', path: string, b
     }
 
     return JSON.parse(chunks.join(''));
+}
+
+
+//---------------------------------------------------------------------------------------
+//---------------------------------------- TESTS ----------------------------------------
+//---------------------------------------------------------------------------------------
+
+
+export async function test() {
+    inputs.api_url = 'https://my.zerotier.com/api/v1';
+    inputs.auth_token = process.env.TOKEN as string;
+    let res = await execAPI('GET', `randomToken`);
+    ASSERT_EQ(res.token.length, 32);
 }

@@ -1,3 +1,4 @@
+import { ASSERT_EQ, ASSERT_FALSE, ASSERT_TRUE } from "../tests/asserts";
 import { inputs } from "./action-in-out";
 
 
@@ -59,4 +60,52 @@ export function checkSelfAddresses(list: string[] | null | undefined): boolean {
     } else {
         return outputAddress(list) !== '';
     }
+}
+
+
+//---------------------------------------------------------------------------------------
+//---------------------------------------- TESTS ----------------------------------------
+//---------------------------------------------------------------------------------------
+
+
+export function test() {
+    ASSERT_TRUE(compareAddress('127.0.0.1', ' 127.0.0.1'));
+    ASSERT_TRUE(compareAddress('2001:0db8:85a3:8d3:1319:8a2e:370:7348', '2001:DB8:85A3:8D3:1319:8A2E:370: 7348'));
+    ASSERT_TRUE(compareAddress('fe80::1ff:fe23:4567:890a', ' fe80:0:0::00:1FF:Fe23:4567:890a'));
+    ASSERT_TRUE(compareAddress('::', '::0'));
+
+    inputs.ip_version = '6';
+    ASSERT_EQ(outputAddress([]), '');
+    ASSERT_EQ(outputAddress(['127.0.0.1/8']), '');
+    ASSERT_EQ(outputAddress(['::']), '::');
+    ASSERT_EQ(outputAddress(['127.0.0.1', '::/24', '127.0.0.2']), '::');
+    ASSERT_EQ(outputAddress(['::/24', '127.0.0.1']), '::');
+    inputs.ip_version = '6?';
+    ASSERT_EQ(outputAddress([]), '');
+    ASSERT_EQ(outputAddress(['127.0.0.1/8']), '127.0.0.1');
+    ASSERT_EQ(outputAddress(['::']), '::');
+    ASSERT_EQ(outputAddress(['127.0.0.1', '::/24', '127.0.0.2']), '::');
+    ASSERT_EQ(outputAddress(['::/24', '127.0.0.1']), '::');
+    inputs.ip_version = '4';
+    ASSERT_EQ(outputAddress([]), '');
+    ASSERT_EQ(outputAddress(['127.0.0.1/8']), '127.0.0.1');
+    ASSERT_EQ(outputAddress(['::']), '');
+    ASSERT_EQ(outputAddress(['::1/24', '127.0.0.1', '::/24']), '127.0.0.1');
+    ASSERT_EQ(outputAddress(['::/24', '127.0.0.1']), '127.0.0.1');
+    inputs.ip_version = '4?';
+    ASSERT_EQ(outputAddress([]), '');
+    ASSERT_EQ(outputAddress(['127.0.0.1/8']), '127.0.0.1');
+    ASSERT_EQ(outputAddress(['::']), '::');
+    ASSERT_EQ(outputAddress(['127.0.0.1', '::/24', '127.0.0.2']), '127.0.0.1');
+    ASSERT_EQ(outputAddress(['::/24', '127.0.0.1']), '127.0.0.1');
+
+    inputs.ip = ['192.168.1.1'];
+    ASSERT_TRUE(checkSelfAddresses(['192.168.1.1']));
+    ASSERT_FALSE(checkSelfAddresses(['192.168.1.2']));
+    ASSERT_TRUE(checkSelfAddresses(['192.168.1.2', '192.168.1.1']));
+
+    inputs.ip = ['192.168.1.1', '10.0.0.10'];
+    ASSERT_FALSE(checkSelfAddresses(['10.0.0.10']));
+    ASSERT_FALSE(checkSelfAddresses(['192.168.1.1']));
+    ASSERT_TRUE(checkSelfAddresses(['10.0.0.10', '192.168.1.2', '192.168.1.1']));
 }

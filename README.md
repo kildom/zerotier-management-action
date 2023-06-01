@@ -14,7 +14,7 @@ The *ZeroTier Management Action* can adjust a local network member configuration
     auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
     ip: '192.168.43.210'
     name: 'test_client'
-    wait_for: '"name==test_server"'
+    wait_for: '[name=test_server]'
 - run: |
     echo Your address: ${{ steps.zerotier.outputs.ip }}
     echo Server address: ${{ steps.zerotier.outputs.wait_for_addresses }}
@@ -59,7 +59,7 @@ As a result, you will get space-separated list of IP addresses in the `wait_for_
 If you want to wait for two servers named `Storage` and `Database`, you can do: 
 
 ```yaml
-wait_for: '[name==Storage] [name==Database]'
+wait_for: '[name=Storage] [name=Database]'
 ```
 
 As an example, you will get following `wait_for_addresses` output:

@@ -518,7 +518,7 @@ var require_file_command = __commonJS({
     };
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.prepareKeyValueMessage = exports.issueFileCommand = void 0;
-    var fs2 = __importStar(require("fs"));
+    var fs = __importStar(require("fs"));
     var os = __importStar(require("os"));
     var uuid_1 = (init_esm_node(), __toCommonJS(esm_node_exports));
     var utils_1 = require_utils();
@@ -527,10 +527,10 @@ var require_file_command = __commonJS({
       if (!filePath) {
         throw new Error(`Unable to find environment variable for file command ${command}`);
       }
-      if (!fs2.existsSync(filePath)) {
+      if (!fs.existsSync(filePath)) {
         throw new Error(`Missing file at path: ${filePath}`);
       }
-      fs2.appendFileSync(filePath, `${utils_1.toCommandValue(message)}${os.EOL}`, {
+      fs.appendFileSync(filePath, `${utils_1.toCommandValue(message)}${os.EOL}`, {
         encoding: "utf8"
       });
     }
@@ -2212,13 +2212,119 @@ __export(main_exports, {
   main: () => main
 });
 module.exports = __toCommonJS(main_exports);
-var fs = __toESM(require("fs"));
+var core2 = __toESM(require_core());
+
+// src/action-in-out.ts
 var core = __toESM(require_core());
-var import_https = require("https");
-var import_child_process = require("child_process");
+var WAIT_INTERVAL = 3e3;
+var inputs = {};
+var outputs = {};
+var startTime = Date.now();
+function explode(str) {
+  let result = str.trim().split(/[\s\r\n]+/g);
+  if (result.length == 1 && result[0] == "") {
+    return [];
+  }
+  return result;
+}
+function prepareInputsOutputs() {
+  inputs = {
+    auth_token: core.getInput("auth_token"),
+    api_url: core.getInput("api_url"),
+    ip: explode(core.getInput("ip")),
+    name: core.getInput("name"),
+    description: core.getInput("description"),
+    tags: explode(core.getInput("tags")),
+    capabilities: explode(core.getInput("capabilities")),
+    wait_for: core.getInput("wait_for"),
+    timeout: parseFloat(core.getInput("timeout")),
+    timeout_fatal: !core.getInput("timeout").endsWith("?"),
+    ip_version: core.getInput("ip_version")
+  };
+  outputs = {
+    ip: "",
+    wait_for_addresses: [],
+    timeout: false
+  };
+}
+function writeOutputs() {
+  core.setOutput("ip", outputs.ip);
+  core.setOutput("wait_for_addresses", outputs.wait_for_addresses.join(" "));
+  core.setOutput("timeout", outputs.timeout ? "true" : "false");
+  console.log("Outputs:", JSON.stringify(outputs, null, 4));
+}
+function isTimeout() {
+  if (inputs.timeout > 0) {
+    let time = (Date.now() - startTime) / 1e3;
+    if (time > inputs.timeout) {
+      outputs.timeout = true;
+      if (inputs.timeout_fatal) {
+        throw new Error("Timeout");
+      }
+      return true;
+    }
+  }
+  return false;
+}
+async function waitInterval() {
+  return new Promise((resolve) => setTimeout(resolve, WAIT_INTERVAL));
+}
+
+// src/address.ts
+function expandIPv6Address(a) {
+  if (a.indexOf(":") < 0) {
+    return a;
+  }
+  let [begin, end] = a.split("::", 2);
+  let beginArr = begin.split(":");
+  let endArr = (end == null ? void 0 : end.split(":")) || [];
+  let missing = 8 - beginArr.length - endArr.length;
+  let missingArr = [];
+  if (missing > 0) {
+    missingArr = new Array(missing).fill("0000");
+  }
+  let arr = beginArr.concat(missingArr, endArr);
+  return arr.map((x) => ("0000" + x.trim().toLowerCase()).slice(-4)).join(":");
+}
+function compareAddress(a, b) {
+  a = a.trim().toLowerCase();
+  b = b.trim().toLowerCase();
+  if (a === b)
+    return true;
+  a = expandIPv6Address(a);
+  b = expandIPv6Address(b);
+  return a === b;
+}
+function outputAddress(list, ipVersion) {
+  ipVersion = ipVersion || inputs.ip_version;
+  list = (list || []).map((address) => address.split("/", 1)[0].trim().toLowerCase());
+  let listA = list.filter((x) => x.indexOf(".") >= 0);
+  let listB = list.filter((x) => x.indexOf(".") < 0);
+  if (ipVersion.startsWith("6")) {
+    [listA, listB] = [listB, listA];
+  }
+  if (ipVersion.endsWith("?")) {
+    return [...listA, ...listB][0] || "";
+  } else {
+    return listA[0] || "";
+  }
+}
+function checkSelfAddresses(list) {
+  list = (list || []).map((address) => address.split("/", 1)[0]);
+  if (inputs.ip) {
+    for (let requested of inputs.ip) {
+      if (!list.find((a) => compareAddress(a, requested))) {
+        return false;
+      }
+    }
+    return true;
+  } else {
+    return outputAddress(list) !== "";
+  }
+}
 
 // src/selectors.ts
-var END_OF_QUERY = "end of query";
+var END_OF_QUERY = "`_end_Of-query_`";
 function escapeRegExp(text) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -2226,12 +2332,14 @@ var Tokenizer = class {
   constructor(text, fields) {
     this.fields = fields;
     this.index = 0;
+    this.tokens = [];
     this.tokenize(text);
   }
   tokenize(text) {
     text = text.trim();
-    let endOfCondition = new RegExp(`\\]\\s*$|\\]\\s+(?:\\[(?:${this.fields.map((x) => escapeRegExp(x)).join("|")})[!=~\\$\\^\\*\\/]=|\\|(?:OR|AND|NOT|BEGIN|END)\\|)`);
-    this.tokens = [];
+    let endOfCondition = new RegExp(
+      /\][\s\)]*(?:$|(?:OR|AND|\s)(?:\(|\s|(?<=[\s\(\)\[\]])NOT)*\[(?:<FIELDS>)[!=~\$\^\*\/]?=)/.source.replace("<FIELDS>", this.fields.map((x) => escapeRegExp(x)).join("|"))
+    );
     while (text !== "") {
       let token;
       if (text[0] == "[") {
@@ -2241,11 +2349,15 @@ var Tokenizer = class {
         }
         token = text.substring(0, m.index + 1).trim();
         text = text.substring(m.index + 1).trim();
-      } else if (text[0] == "|") {
-        text = text.substring(1);
-        let index = text.indexOf("|");
-        token = text.substring(0, index);
-        text = text.substring(index + 1).trim();
+      } else if (text.startsWith("AND") || text.startsWith("NOT")) {
+        token = text.substring(0, 3);
+        text = text.substring(3).trim();
+      } else if (text.startsWith("OR")) {
+        token = text.substring(0, 2);
+        text = text.substring(2).trim();
+      } else if (text.startsWith("(") || text.startsWith(")")) {
+        token = text.substring(0, 1);
+        text = text.substring(1).trim();
       } else {
         throw new Error();
       }
@@ -2297,16 +2409,16 @@ function parseLeaf(tokenizer) {
       return !x(n);
     };
   }
-  if (tokenizer.match("BEGIN")) {
+  if (tokenizer.match("(")) {
     let x = parseOr(tokenizer);
-    if (!tokenizer.match("END")) {
-      throw new Error(`Query syntax error: expecting |END| near: ${tokenizer.peek()}`);
+    if (!tokenizer.match(")")) {
+      throw new Error(`Query syntax error: expecting ")" near: ${tokenizer.peek()}`);
     }
     return x;
   } else {
     let token = tokenizer.get();
     token = token.substring(1, token.length - 1).trimStart();
-    let m = token.match(/^(.*?)([!=~\$\^\*\/])=([\S\s]*)$/);
+    let m = token.match(/^(.*?)([!=~\$\^\*\/]?)=([\S\s]*)$/);
     if (m === null) {
       throw new Error(`Query syntax error: invalid condition near: ${token}`);
     }
@@ -2314,15 +2426,14 @@ function parseLeaf(tokenizer) {
     if (tokenizer.fields.indexOf(field) < 0) {
       throw new Error(`Query syntax error: unknown field: ${field}`);
     }
-    return (n) => {
-      return matchCondition(n, field, condition, value);
-    };
+    return createConditionRegExp(field, condition, value);
   }
 }
-function matchCondition(node, field, condition, value) {
+function createConditionRegExp(field, condition, value) {
   let escapedValue = escapeRegExp(value);
   let re;
   switch (condition) {
+    case "":
     case "=":
       re = new RegExp("^" + escapedValue + "$", "si");
       break;
@@ -2347,9 +2458,11 @@ function matchCondition(node, field, condition, value) {
     default:
       throw new Error();
   }
-  return re.test(node[field] || "");
+  return (n) => {
+    return re.test(n[field] || "");
+  };
 }
-function parseSelectors(text, fields) {
+function compileSelectors(text, fields) {
   let tokenizer = new Tokenizer(text, fields);
   let selectors = [];
   while (!tokenizer.match(END_OF_QUERY)) {
@@ -2359,92 +2472,16 @@ function parseSelectors(text, fields) {
   return selectors;
 }
 
-// src/main.ts
-var WAIT_INTERVAL = 3e3;
-function explode(str) {
-  let result = str.trim().split(/[\s\r\n]+/g);
-  if (result.length == 1 && result[0] == "") {
-    return [];
-  }
-  return result;
-}
-var outputs = {
-  ip: "",
-  wait_for_addresses: "",
-  timeout: "false"
-};
-var inputs = {
-  auth_token: core.getInput("auth_token"),
-  api_url: core.getInput("api_url"),
-  ip: explode(core.getInput("ip")),
-  name: core.getInput("name"),
-  description: core.getInput("description"),
-  tags: explode(core.getInput("tags")),
-  capabilities: explode(core.getInput("capabilities")),
-  wait_for: core.getInput("wait_for"),
-  timeout: core.getInput("timeout"),
-  ip_version: explode(core.getInput("ip_version"))
-};
-var cli = null;
-var startTime = Date.now();
-function isTimeout() {
-  if (inputs.timeout) {
-    let time = (Date.now() - startTime) / 1e3;
-    let timeout = parseFloat(inputs.timeout);
-    if (time > timeout) {
-      outputs.timeout = "true";
-      if (!inputs.timeout.endsWith("?")) {
-        throw new Error("Timeout");
-      }
-      return true;
-    }
-  }
-  return false;
-}
-function prepareCLI() {
-  if (cli !== null) {
-    return;
-  } else if (process.platform !== "win32") {
-    cli = { file: "sudo", args: ["zerotier-cli"] };
-  } else {
-    let tryPaths = [
-      process.env["ProgramFiles"] + "\\ZeroTier\\One\\",
-      process.env["ProgramData"] + "\\ZeroTier\\One\\",
-      process.env["ProgramFiles(x86)"] + "\\ZeroTier\\One\\",
-      ""
-    ];
-    for (let path of tryPaths) {
-      let file = "cmd.exe";
-      let args = ["/c", `${path}zerotier-cli.bat`];
-      try {
-        (0, import_child_process.execFileSync)(file, [...args, "--version"]);
-        cli = { file, args };
-      } catch (err) {
-      }
-    }
-    throw new Error("Cannot execute zerotier-cli.bat");
-  }
-  try {
-    (0, import_child_process.execFileSync)(cli.file, [...cli.args, "-j", "status"]);
-  } catch (err) {
-    throw new Error("Cannot execute zerotier-cli");
-  }
-}
-var apiURL = "";
-var apiHeaders = {};
-function prepareAPI() {
-  if (apiURL === "") {
-    apiURL = inputs.api_url;
-    if (!apiURL.endsWith("/")) {
-      apiURL += "/";
-    }
-    apiHeaders = {
-      "Authorization": `token ${inputs.auth_token}`
-    };
-  }
-}
+// src/zt-api.ts
+var import_https = require("https");
 async function execAPI(method, path, body) {
-  prepareAPI();
+  let apiURL = inputs.api_url;
+  if (!apiURL.endsWith("/")) {
+    apiURL += "/";
+  }
+  let apiHeaders = {
+    "Authorization": `token ${inputs.auth_token}`
+  };
   let resolve, reject;
   let promise = new Promise((a, b) => {
     resolve = a;
@@ -2479,50 +2516,54 @@ async function execAPI(method, path, body) {
   }
   return JSON.parse(chunks.join(""));
 }
+
+// src/zt-cli.ts
+var import_child_process = require("child_process");
+var file = "";
+var execArgs = [];
+function prepareCLI() {
+  if (file !== "") {
+    return;
+  } else if (process.platform !== "win32") {
+    file = "sudo";
+    execArgs = ["zerotier-cli"];
+  } else {
+    let tryPaths = [
+      process.env["ProgramFiles"] + "\\ZeroTier\\One\\",
+      process.env["ProgramData"] + "\\ZeroTier\\One\\",
+      process.env["ProgramFiles(x86)"] + "\\ZeroTier\\One\\",
+      ""
+    ];
+    for (let path of tryPaths) {
+      let tryFile = "cmd.exe";
+      let tryArgs = ["/c", `${path}zerotier-cli.bat`];
+      try {
+        (0, import_child_process.execFileSync)(tryFile, [...tryArgs, "--version"]);
+        file = tryFile;
+        execArgs = tryArgs;
+        break;
+      } catch (err) {
+      }
+    }
+  }
+  try {
+    (0, import_child_process.execFileSync)(file, [...execArgs, "-j", "status"]);
+  } catch (err) {
+    throw new Error("Cannot execute zerotier-cli");
+  }
+}
 function execCLI(...args) {
   prepareCLI();
-  let res = (0, import_child_process.execFileSync)(cli.file, [...cli.args, ...args], {
+  let res = (0, import_child_process.execFileSync)(file, [...execArgs, ...args], {
     encoding: "utf8",
     maxBuffer: 4 * 1024 * 1024
   });
   return JSON.parse(res);
 }
-function outputAddress(list, ipVersion, inWaitList = false) {
-  list = (list || []).map((address) => address.split("/", 1)[0]);
-  ipVersion = ipVersion || inputs.ip_version;
-  let result = "";
-  if (ipVersion[0] === "list") {
-    result = list.join(inWaitList ? "," : " ");
-  } else {
-    let ip = {};
-    for (let addr of list) {
-      if (addr.indexOf(".") >= 0 && ip["4"] === void 0) {
-        ip["4"] = addr;
-      } else if (ip["6"] === void 0) {
-        ip["6"] = addr;
-      }
-    }
-    result = ip[ipVersion[0]] || ip[ipVersion[1]] || "";
-  }
-  if (result === "" && inWaitList) {
-    result = "-";
-  }
-  return result;
-}
-function checkAddresses(list) {
-  list = (list || []).map((address) => address.split("/", 1)[0]);
-  if (inputs.ip) {
-    for (let requested of inputs.ip) {
-      if (!list.find((a) => compareAddress(a, requested))) {
-        return false;
-      }
-    }
-    return true;
-  } else {
-    return outputAddress(list, void 0) !== "";
-  }
-}
-var selectorFields = `
+
+// src/main.ts
+var LAST_SEEN_TIMEOUT = 5 * 60 * 1e3;
+var selectorAttrs = `
     nodeId
     name
     description
@@ -2535,23 +2576,32 @@ var selectorFields = `
 var networks;
 var networkId;
 var networkInfo;
-var status;
 var nodeId;
-var LAST_SEEN_TIMEOUT = 5 * 60 * 1e3;
 async function waitForNodes() {
   var _a, _b, _c;
-  let selectors = parseSelectors(inputs.wait_for, selectorFields);
-  let startTime2 = Date.now();
+  if (!inputs.wait_for) {
+    return;
+  }
+  let attrNames = [...selectorAttrs];
+  for (let [name, info] of Object.entries(networkInfo.tagsByName || {})) {
+    attrNames.push(`tag:${name}`);
+    attrNames.push(`tag:${info.id}`);
+    attrNames.push(`tagEnum:${name}`);
+    attrNames.push(`tagEnum:${info.id}`);
+  }
+  let selectors = compileSelectors(inputs.wait_for, attrNames);
   do {
     let list = await execAPI("GET", `network/${networkId}/member`);
-    fs.writeFileSync("x.json", JSON.stringify(list, null, 2));
     let active = [];
     for (let node of list) {
-      if (node.nodeId == nodeId)
+      if (node.nodeId === nodeId)
         continue;
       if (!((_a = node.config) == null ? void 0 : _a.authorized))
         continue;
-      if (node.clock - node.lastOnline > LAST_SEEN_TIMEOUT)
+      if ((node.clock || Date.now()) - (node.lastOnline || 0) > LAST_SEEN_TIMEOUT)
+        continue;
+      let address = outputAddress(node.config.ipAssignments);
+      if (address === "")
         continue;
       let capabilities = [];
       for (let cap of ((_b = node.config) == null ? void 0 : _b.capabilities) || []) {
@@ -2563,17 +2613,16 @@ async function waitForNodes() {
         }
       }
       let attr = {
-        __node__: node,
         nodeId: node.nodeId || "",
         name: node.name || "",
         description: node.description || "",
         capabilities: capabilities.join(" "),
         identity: node.config.identity || "",
-        address: outputAddress(node.config.ipAssignments),
-        IPv4Address: outputAddress(node.config.ipAssignments, ["4"]),
-        IPv6Address: outputAddress(node.config.ipAssignments, ["6"])
+        address,
+        IPv4Address: outputAddress(node.config.ipAssignments, "4"),
+        IPv6Address: outputAddress(node.config.ipAssignments, "6")
       };
-      for (let [id, value] of ((_c = node.config) == null ? void 0 : _c.tags) || {}) {
+      for (let [id, value] of ((_c = node.config) == null ? void 0 : _c.tags) || []) {
         if (value === false)
           continue;
         attr[`tag:${id}`] = value.toString();
@@ -2603,13 +2652,13 @@ async function waitForNodes() {
       }
     }
     if (matched.findIndex((attr) => attr === null) < 0) {
-      outputs.wait_for_addresses = matched.map((attr) => outputAddress(attr.__node__.config.ipAssignments, void 0, true)).join(" ");
+      outputs.wait_for_addresses = matched.map((attr) => attr.address);
       break;
     }
     if (isTimeout()) {
       break;
     }
-    await new Promise((resolve) => setTimeout(resolve, WAIT_INTERVAL));
+    await waitInterval();
   } while (true);
 }
 function readNetworks() {
@@ -2619,39 +2668,17 @@ function readNetworks() {
   }
   networkId = networks[0].id;
 }
-function expandIPv6Address(a) {
-  if (a.indexOf(":") < 0) {
-    return a;
-  }
-  let [begin, end] = a.split("::", 2);
-  let beginArr = begin.split(":");
-  let endArr = (end == null ? void 0 : end.split(":")) || [];
-  let missing = 8 - beginArr.length - endArr.length;
-  let missingArr = [];
-  if (missing > 0) {
-    missingArr = new Array(missing).fill("0000");
-  }
-  let arr = beginArr.concat(missingArr, endArr);
-  return arr.map((x) => ("0000" + x.trim().toLowerCase()).slice(-4)).join(":");
-}
-function compareAddress(a, b) {
-  a = a.trim().toLowerCase();
-  b = b.trim().toLowerCase();
-  if (a === b)
-    return true;
-  a = expandIPv6Address(a);
-  b = expandIPv6Address(b);
-  return a === b;
-}
-async function mainAsync() {
-  var _a, _b;
+async function readGeneralInfo() {
+  var _a;
   readNetworks();
   console.log("Network Id:", networkId);
-  networkInfo = await execAPI("GET", `network/${networkId}`);
-  console.log("Network name:", (_a = networkInfo.config) == null ? void 0 : _a.name);
-  status = execCLI("-j", "status");
+  let status = execCLI("-j", "status");
   nodeId = status.address;
   console.log("Node Id:", nodeId);
+  networkInfo = await execAPI("GET", `network/${networkId}`);
+  console.log("Network name:", (_a = networkInfo.config) == null ? void 0 : _a.name);
+}
+async function writeNodeData() {
   let data = {
     config: {}
   };
@@ -2697,46 +2724,41 @@ async function mainAsync() {
       data.config.tags.push([keyInt, valueInt]);
     }
   }
-  if (Object.keys(data.config).length == 0) {
-    delete data.config;
-  }
-  if (Object.keys(data).length > 0) {
+  if (Object.keys(data.config).length > 0 || Object.keys(data).length > 0) {
     console.log("New configuration:", JSON.stringify(data, null, 4));
     await execAPI("POST", `network/${networkId}/member/${nodeId}`, data);
   }
-  for (let [name, info] of Object.entries(networkInfo.tagsByName)) {
-    selectorFields.push(`tag:${name}`);
-    selectorFields.push(`tag:${info.id}`);
-    selectorFields.push(`tagEnum:${name}`);
-    selectorFields.push(`tagEnum:${info.id}`);
-  }
-  if (inputs.wait_for) {
-    await waitForNodes();
-  }
+}
+async function waitForAddressAssignment() {
+  var _a;
   do {
     readNetworks();
-    if (checkAddresses(networks[0].assignedAddresses) || isTimeout()) {
+    if (checkSelfAddresses(networks[0].assignedAddresses) || isTimeout()) {
       break;
     }
-    await new Promise((resolve) => setTimeout(resolve, WAIT_INTERVAL));
+    await waitInterval();
   } while (true);
   do {
     let thisNode = await execAPI("GET", `network/${networkId}/member/${nodeId}`);
-    if (checkAddresses((_b = thisNode.config) == null ? void 0 : _b.ipAssignments) || isTimeout()) {
+    if (checkSelfAddresses((_a = thisNode.config) == null ? void 0 : _a.ipAssignments) || isTimeout()) {
       break;
     }
-    await new Promise((resolve) => setTimeout(resolve, WAIT_INTERVAL));
+    await waitInterval();
   } while (true);
   if (networks[0].assignedAddresses) {
     outputs.ip = outputAddress(networks[0].assignedAddresses);
   }
-  for (let outputName in outputs) {
-    core.setOutput(outputName, outputs[outputName]);
-  }
-  console.log("Outputs:", JSON.stringify(outputs, null, 4));
+}
+async function mainAsync() {
+  prepareInputsOutputs();
+  await readGeneralInfo();
+  await writeNodeData();
+  await waitForNodes();
+  await waitForAddressAssignment();
+  writeOutputs();
 }
 function main() {
-  mainAsync().catch((err) => core.setFailed(err.message));
+  mainAsync().catch((err) => core2.setFailed(err.message));
 }
 main();
 // Annotate the CommonJS export names for ESM import in node:

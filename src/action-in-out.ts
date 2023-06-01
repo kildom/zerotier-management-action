@@ -27,9 +27,9 @@ export interface Outputs {
 };
 
 
-export let inputs: Inputs;
-export let outputs: Outputs;
-let startTime: number;
+export let inputs: Inputs = {} as Inputs;
+export let outputs: Outputs = {} as Outputs;
+let startTime: number = Date.now();
 
 
 function explode(str: string): string[] {
@@ -42,8 +42,6 @@ function explode(str: string): string[] {
 
 
 export function prepareInputsOutputs() {
-
-    startTime = Date.now();
 
     inputs = {
         auth_token: core.getInput('auth_token'),
