@@ -91,9 +91,9 @@ jobs:
           wait_for: 'TestServer1'
           ip_version: 6
           timeout: 7
-      - if: ${{ steps.by_name_simple.outputs.wait_for_addresses != 'fde0:0000:0000:0000:0000:0000:0000:0251' }}
+      - if: ${{ steps.by_name_simple.outputs.wait_for_addresses != 'fde0::251' }}
         run: exit 1
-      - if: ${{ steps.by_name_simple.outputs.ip != format('fde0:0000:0000:0000:0000:0000:0000:0{0}', matrix.ip) }}
+      - if: ${{ steps.by_name_simple.outputs.ip != format('fde0::{0}', matrix.ip) }}
         run: exit 1
 
       - name: By tag and cap
@@ -159,7 +159,7 @@ jobs:
           timeout: 7
       - if: ${{ steps.by_names.outputs.wait_for_addresses != '192.168.194.251' && steps.by_names.outputs.wait_for_addresses != '192.168.194.252' }}
         run: exit 1
-      - if: ${{ steps.by_names.outputs.ip != format('fde0:0000:0000:0000:0000:0000:0000:0{0}', matrix.ip) }}
+      - if: ${{ steps.by_names.outputs.ip != format('fde0::{0}', matrix.ip) }}
         run: exit 1
 
       - name: By description
