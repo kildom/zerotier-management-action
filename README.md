@@ -86,7 +86,7 @@ This action should be executed after the [zerotier/github-action](https://github
 ```
 
 In ZeroTier network, IP address availability not always guarantee that a network connection can be established immediately.
-You should use other methods to check it. For example, do `ping` or check for open ports.yword. |
+You should use other methods to check it. For example, do `ping` or check for open ports.
 
 ## Waiting for other members
 
