@@ -59,6 +59,12 @@ inputs:
       A number telling which IP address version should be used, "4" or "6". You can add "?" to
       allow a different version if specified version is not available, e.g. "6?" use IPv6,
       but if not available, it will fall back to IPv4.
+  wait_for_unavailable:
+    required: false
+    default: false
+    description: >
+      Wait until all nodes from "wait_for" become unavailable.
+      Normal wait be default.
 outputs:
   ip:
     description: 'The IP address assigned to local node.'

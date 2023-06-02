@@ -2,7 +2,7 @@
 import * as core from '@actions/core';
 
 
-const WAIT_INTERVAL = 3000;
+const WAIT_INTERVAL = 5000;
 
 
 export interface Inputs {
@@ -17,6 +17,7 @@ export interface Inputs {
     timeout: number;
     timeout_fatal: boolean;
     ip_version: string;
+    wait_for_unavailable: boolean;
 };
 
 
@@ -55,6 +56,7 @@ export function prepareInputsOutputs() {
         timeout: parseFloat(core.getInput('timeout')),
         timeout_fatal: !core.getInput('timeout').endsWith('?'),
         ip_version: core.getInput('ip_version'),
+        wait_for_unavailable: core.getBooleanInput('wait_for_unavailable'),
     };
 
     outputs = {

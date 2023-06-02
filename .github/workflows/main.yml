@@ -10,7 +10,26 @@ on:
 
 jobs:
 
+  WaitForEndOfPreviousBuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: ZeroTier
+        uses: zerotier/github-action@v1.0.1
+        with:
+          network_id: ${{ secrets.ZEROTIER_NETWORK_ID }}
+          auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
+      - name: Wait for servers from previous build
+        id: wait1
+        uses: ./
+        with:
+          auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
+          wait_for: '[name=TestServer1] [name=TestServer2] [name=StopTestServers] [name^=tester-]'
+          wait_for_unavailable: true
+          timeout: 60
+
   StartTestServer1:
+    needs: WaitForEndOfPreviousBuild
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
@@ -32,6 +51,7 @@ jobs:
           timeout: 60
 
   StartTestServer2:
+    needs: WaitForEndOfPreviousBuild
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
@@ -52,6 +72,7 @@ jobs:
           timeout: 60
 
   Main1:
+    needs: WaitForEndOfPreviousBuild
     strategy:
       matrix:
         include:
@@ -88,6 +109,7 @@ jobs:
         with:
           auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
           ip: '192.168.194.${{ matrix.ip }} fde0::${{ matrix.ip }}'
+          name: tester-${{ matrix.os }}
           wait_for: 'TestServer1'
           ip_version: 6
           timeout: 7
@@ -121,6 +143,7 @@ jobs:
         run: exit 1
 
   Main2:
+    needs: WaitForEndOfPreviousBuild
     strategy:
       matrix:
         include:
@@ -155,6 +178,7 @@ jobs:
         with:
           auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
           ip: '192.168.194.${{ matrix.ip }} fde0::${{ matrix.ip }}'
+          name: tester-${{ matrix.os }}
           wait_for: '[name=TestServer1] OR [name=TestServer2]'
           timeout: 7
       - if: ${{ steps.by_names.outputs.wait_for_addresses != '192.168.194.251' && steps.by_names.outputs.wait_for_addresses != '192.168.194.252' }}
@@ -204,4 +228,12 @@ jobs:
           name: 'StopTestServers'
       - name: Sleep
         shell: bash
-        run: sleep 300
+        run: sleep 60
+      - name: Wait for shutdown of test servers
+        id: wait2
+        uses: ./
+        with:
+          auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
+          wait_for: '[name=TestServer1] [name=TestServer2]'
+          wait_for_unavailable: true
+          timeout: 60

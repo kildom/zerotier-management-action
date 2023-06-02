@@ -173,10 +173,17 @@ async function waitForNodes() {
             }
         }
 
-        // If we cannot find null, then all expressions are fulfilled - outputs IP addresses
-        if (matched.findIndex(attr => attr === null) < 0) {
-            outputs.wait_for_addresses = matched.map(attr => attr!.address);
-            break;
+        if (inputs.wait_for_unavailable) {
+            // If all are null, then all expressions are not fulfilled - returns
+            if (matched.every(attr => attr === null)) {
+                break;
+            }
+        } else {
+            // If we cannot find null, then all expressions are fulfilled - outputs IP addresses
+            if (matched.findIndex(attr => attr === null) < 0) {
+                outputs.wait_for_addresses = matched.map(attr => attr!.address);
+                break;
+            }
         }
 
         // Check timeout before sleeping
