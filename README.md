@@ -13,8 +13,8 @@ The *ZeroTier Management Action* can adjust a local network member configuration
   with:
     auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
     ip: '192.168.43.210'
-    name: 'test_client'
-    wait_for: '[name=test_server]'
+    name: 'Test Client'
+    wait_for: 'Test Server'
 - run: |
     echo Your address: ${{ steps.zerotier.outputs.ip }}
     echo Server address: ${{ steps.zerotier.outputs.wait_for_addresses }}
@@ -68,7 +68,7 @@ As an example, you will get following `wait_for_addresses` output:
 192.168.41.212 192.168.41.8
 ```
 
-Where `192.168.41.212` is storage server and `192.168.41.8` is database server.
+Where `192.168.41.212` is `Storage` server and `192.168.41.8` is `Database` server.
 
 If multiple nodes fulfills one expression, just one of them is taken into account.
 If one node fulfills multiple expressions, it will be assigned to the first expression.
@@ -79,6 +79,6 @@ If you have multiple nodes of the same kind, you can repeat the same expression,
 wait_for: '[name^=Build server] [name^=Build server] [name^=Build server]'
 ```
 
-As a result, you will get IP addresses of three server with name starting with `Build server`.
+In the `wait_for_addresses` output, you will get three IP addresses of servers which names start with `Build server`.
 
 Detailed syntax description is in the [Expression syntax details](docs/selectors.md).

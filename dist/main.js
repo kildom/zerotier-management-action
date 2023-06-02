@@ -2276,7 +2276,7 @@ function expandIPv6Address(a) {
     return a;
   }
   let [begin, end] = a.split("::", 2);
-  let beginArr = begin.split(":");
+  let beginArr = (begin == null ? void 0 : begin.split(":")) || [];
   let endArr = (end == null ? void 0 : end.split(":")) || [];
   let missing = 8 - beginArr.length - endArr.length;
   let missingArr = [];
@@ -2310,7 +2310,7 @@ function outputAddress(list, ipVersion) {
   }
 }
 function checkSelfAddresses(list) {
-  list = (list || []).map((address) => address.split("/", 1)[0]);
+  list = (list || []).map((address) => address.split("/", 1)[0].trim());
   if (inputs.ip) {
     for (let requested of inputs.ip) {
       if (!list.find((a) => compareAddress(a, requested))) {
@@ -2338,8 +2338,21 @@ var Tokenizer = class {
   tokenize(text) {
     text = text.trim();
     let endOfCondition = new RegExp(
-      /\][\s\)]*(?:$|(?:OR|AND|\s)(?:\(|\s|(?<=[\s\(\)\[\]])NOT)*\[(?:<FIELDS>)[!=~\$\^\*\/]?=)/.source.replace("<FIELDS>", this.fields.map((x) => escapeRegExp(x)).join("|"))
+      /\][\s\)]*(?:$|(?:OR|AND|\s)(?:\(|\s|(?<=[\s\(\)\[\]])NOT)*\[(?:<FIELDS>)[!=~\$\^\*\/\?]?=)/.source.replace("<FIELDS>", this.fields.map((x) => escapeRegExp(x)).join("|"))
     );
+    let simpleExpCondition = new RegExp(
+      /^(?:<FIELDS>)[!=~\$\^\*\/\?]?=/.source.replace("<FIELDS>", this.fields.map((x) => escapeRegExp(x)).join("|"))
+    );
+    let notDirectValueCondition = new RegExp(
+      /(?:<FIELDS>)[!=~\$\^\*\/\?]?=/.source.replace("<FIELDS>", this.fields.map((x) => escapeRegExp(x)).join("|"))
+    );
+    if (!notDirectValueCondition.test(text)) {
+      this.tokens.push(`[${this.fields[0]}=${text}]`);
+      return;
+    } else if (simpleExpCondition.test(text)) {
+      this.tokens.push(`[${text}]`);
+      return;
+    }
     while (text !== "") {
       let token;
       if (text[0] == "[") {
@@ -2418,7 +2431,7 @@ function parseLeaf(tokenizer) {
   } else {
     let token = tokenizer.get();
     token = token.substring(1, token.length - 1).trimStart();
-    let m = token.match(/^(.*?)([!=~\$\^\*\/]?)=([\S\s]*)$/);
+    let m = token.match(/^(.*?)([!=~\$\^\*\/\?]?)=([\S\s]*)$/);
     if (m === null) {
       throw new Error(`Query syntax error: invalid condition near: ${token}`);
     }
@@ -2426,10 +2439,10 @@ function parseLeaf(tokenizer) {
     if (tokenizer.fields.indexOf(field) < 0) {
       throw new Error(`Query syntax error: unknown field: ${field}`);
     }
-    return createConditionRegExp(field, condition, value);
+    return createConditionFunc(field, condition, value);
   }
 }
-function createConditionRegExp(field, condition, value) {
+function createConditionFunc(field, condition, value) {
   let escapedValue = escapeRegExp(value);
   let re;
   switch (condition) {
@@ -2455,6 +2468,12 @@ function createConditionRegExp(field, condition, value) {
     case "/":
       re = new RegExp(value, "si");
       break;
+    case "?": {
+      let func = new Function("$", "$$", `return !!(${value});`);
+      return (n) => {
+        return func(n[field] || "", n);
+      };
+    }
     default:
       throw new Error();
   }
@@ -2564,8 +2583,8 @@ function execCLI(...args) {
 // src/main.ts
 var LAST_SEEN_TIMEOUT = 5 * 60 * 1e3;
 var selectorAttrs = `
-    nodeId
     name
+    nodeId
     description
     capabilities
     identity
@@ -2730,22 +2749,22 @@ async function writeNodeData() {
   }
 }
 async function waitForAddressAssignment() {
-  var _a;
+  var _a, _b, _c;
   do {
     readNetworks();
-    if (checkSelfAddresses(networks[0].assignedAddresses) || isTimeout()) {
+    if (checkSelfAddresses((_a = networks[0]) == null ? void 0 : _a.assignedAddresses) || isTimeout()) {
       break;
     }
     await waitInterval();
   } while (true);
   do {
     let thisNode = await execAPI("GET", `network/${networkId}/member/${nodeId}`);
-    if (checkSelfAddresses((_a = thisNode.config) == null ? void 0 : _a.ipAssignments) || isTimeout()) {
+    if (checkSelfAddresses((_b = thisNode.config) == null ? void 0 : _b.ipAssignments) || isTimeout()) {
       break;
     }
     await waitInterval();
   } while (true);
-  if (networks[0].assignedAddresses) {
+  if ((_c = networks[0]) == null ? void 0 : _c.assignedAddresses) {
     outputs.ip = outputAddress(networks[0].assignedAddresses);
   }
 }

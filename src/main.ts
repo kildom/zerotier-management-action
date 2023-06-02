@@ -65,8 +65,8 @@ interface NodeAttrs {
 };
 
 const selectorAttrs = `
-    nodeId
     name
+    nodeId
     description
     capabilities
     identity
@@ -166,7 +166,7 @@ async function waitForNodes() {
         let matched: (NodeAttrs | null)[] = selectors.map(() => null);
         for (let attr of active) {
             for (let i = 0; i < selectors.length; i++) {
-                if (matched[i] === null && selectors[i](attr)) {
+                if (matched[i] === null && selectors[i]!(attr)) {
                     matched[i] = attr;
                     break;
                 }
@@ -196,7 +196,7 @@ function readNetworks() {
     if (networks.length == 0) {
         throw new Error('No networks found');
     }
-    networkId = networks[0].id;
+    networkId = networks[0]!.id;
 }
 
 
@@ -238,7 +238,7 @@ async function writeNodeData() {
         for (let cap of inputs.capabilities) {
             let capInt: number;
             if (networkInfo.capabilitiesByName && networkInfo.capabilitiesByName[cap] !== undefined) {
-                capInt = networkInfo.capabilitiesByName[cap];
+                capInt = networkInfo.capabilitiesByName[cap] as number;
             } else {
                 capInt = parseInt(cap);
             }
@@ -278,7 +278,7 @@ async function writeNodeData() {
 async function waitForAddressAssignment() {
     do {
         readNetworks();
-        if (checkSelfAddresses(networks[0].assignedAddresses) || isTimeout()) {
+        if (checkSelfAddresses(networks[0]?.assignedAddresses) || isTimeout()) {
             break;
         }
         await waitInterval();
@@ -292,7 +292,7 @@ async function waitForAddressAssignment() {
         await waitInterval();
     } while (true);
 
-    if (networks[0].assignedAddresses) {
+    if (networks[0]?.assignedAddresses) {
         outputs.ip = outputAddress(networks[0].assignedAddresses);
     }
 }

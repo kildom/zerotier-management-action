@@ -14,8 +14,12 @@ export INPUT_IP="fde0::213 192.168.194.213"
 #export INPUT_DESCRIPTION="Jakiś tam tekst"
 export INPUT_TAGS=
 export INPUT_CAPABILITIES=
-export INPUT_WAIT_FOR='|BEGIN| "tagEnum:department==support" |OR| "capabilities~=test" |END| |AND| "IPv4Address!='
-export INPUT_IP_VERSION="4 6"
+export INPUT_WAIT_FOR='( [tagEnum:department==support] OR [capabilities~=test] ) AND [IPv4Address!=]'
+export INPUT_IP_VERSION="4?"
 export INPUT_TIMEOUT="100"
 
+pushd ..
+
 node dist/main.js
+
+popd

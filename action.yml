@@ -1,50 +1,69 @@
-name: 'ZeroTier Connection Helper'
-description: 'Adjust local ZeroTier-One node and query other network nodes allowing simpler connection setup between them.'
+name: 'ZeroTier Management Action'
+description: 'Adjust local ZeroTier-One node and query other network nodes.'
 inputs:
   auth_token:
-    description: "Your ZeroTier Central API Access Token"
     required: true
+    description: >
+      Your ZeroTier Central API Access Token: https://my.zerotier.com/account
   api_url:
-    description: "ZeroTier Central API URL"
     required: false
     default: "https://my.zerotier.com/api/v1"
+    description: >
+      ZeroTier Central API URL
   ip:
-    description: 'Change IP addresses of local node (space separated list).'
     required: false
     default: ''
+    description: >
+      Change IP addresses of local node (space separated list). Both IPv4 and IPv6 are acceptable.
+      Unchanged by default.
   name:
-    description: 'Change name of local node.'
     required: false
     default: ''
+    description: >
+      Change name of local node.
+      Unchanged by default.
   description:
-    description: 'Change description of local node.'
     required: false
     default: ''
+    description: >
+      Change description of local node.
+      Unchanged by default.
   tags:
-    description: 'Change tags of local node  (space separated list of "key=value" pairs).'
     required: false
     default: ''
+    description: >
+      Change tags of local node  (space separated list of "key=value" pairs).
+      Unchanged by default.
   capabilities:
-    description: 'Change capabilities of local node (space separated list).'
     required: false
     default: ''
+    description: >
+      Change capabilities of local node (space separated list).
+      Unchanged by default.
   wait_for:
-    description: 'List of other network nodes that you want to wait for (list of selectors, see details in the README).'
     required: false
     default: ''
+    description: >
+      Name of the node that you want to wait for or a list of expressions defining the nodes
+      that you want to wait for. See README for details about expressions.
   timeout:
-    description: 'Number of seconds to wait for other nodes. On timeout, the action will fail unless you add question mark "?" after the time. By default, wait forever.'
     required: false
     default: ''
+    description: >
+      Number of seconds to wait for other nodes. On timeout, the action will fail unless you
+      add "?" after the time. Wait forever by default.
   ip_version:
-    description: 'One or two numbers telling what IP address version should be returned in the outputs and used to match with "wait_for", "X" - IPvX, "X Y" - IPvX or IPvY, but prefer IPvX, default "4 6". Special value "list" tells to return all addresses as comma separated list.'
     required: false
-    default: '4 6'
+    default: '4'
+    description: >
+      A number telling which IP address version should be used, "4" or "6". You can add "?" to
+      allow a different version if specified version is not available, e.g. "6?" use IPv6,
+      but if not available, it will fall back to IPv4.
 outputs:
   ip:
     description: 'The IP address assigned to local node.'
   wait_for_addresses:
-    description: 'List of space separated list of addresses.'
+    description: 'Address of each node that you waited for (space separated list).'
   timeout:
     description: '"true" or "false" indicating if timeout occurred.'
 runs:

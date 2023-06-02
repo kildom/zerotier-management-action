@@ -7,7 +7,7 @@ function expandIPv6Address(a: string): string {
         return a;
     }
     let [begin, end] = a.split('::', 2);
-    let beginArr = begin.split(':');
+    let beginArr = begin?.split(':') || [];
     let endArr = end?.split(':') || [];
     let missing = 8 - beginArr.length - endArr.length;
     let missingArr: string[] = [];
@@ -34,7 +34,7 @@ function compareAddress(a: string, b: string): boolean {
 export function outputAddress(list: string[] | null | undefined, ipVersion?: string): string {
     ipVersion = ipVersion || inputs.ip_version;
     list = (list || [])
-        .map(address => address.split('/', 1)[0].trim().toLowerCase());
+        .map(address => address.split('/', 1)[0]!.trim().toLowerCase());
     let listA = list.filter(x => x.indexOf('.') >= 0);
     let listB = list.filter(x => x.indexOf('.') < 0);
     if (ipVersion.startsWith('6')) {
@@ -49,7 +49,7 @@ export function outputAddress(list: string[] | null | undefined, ipVersion?: str
 
 
 export function checkSelfAddresses(list: string[] | null | undefined): boolean {
-    list = (list || []).map(address => address.split('/', 1)[0]);
+    list = (list || []).map(address => address.split('/', 1)[0]!.trim());
     if (inputs.ip) {
         for (let requested of inputs.ip) {
             if (!list.find(a => compareAddress(a, requested))) {

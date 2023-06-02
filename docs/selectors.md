@@ -15,6 +15,9 @@ Examples selectors with operators:
  * `[address$=.123] OR [address$=:0123]` - address ends with `.123` or `:0123`
  * `NOT ([name==Server] OR [name==Host])` - name is neither `Server` nor `Host`
 
+If entire input contains one expression and that expression contains one selector, then
+`[` and `]` signs may be skipped, e.g. `name=Server` is the same as `[name=Server]`.
+
 ## Selector syntax
 
 Selectors are inspired by the [CSS Attribute selectors](https://developer.mozilla.org/en-US/docs/Web/CSS/Attribute_selectors).
@@ -29,6 +32,8 @@ Selectors are case-insensitive.
 | `[attr^=value]` | Represents nodes whose attribute starts with `value` |
 | `[attr$=value]` | Represents nodes whose attribute ends with `value` |
 | `[attr*=value]` | Represents nodes whose attribute contains `value` |
+| `[attr/=pattern]` | Represents nodes whose attribute matches regexp `pattern` |
+| `[attr?=expression]` | Represents nodes whose attribute matches JavaScript `expression`. `$` is a JS variable containing the attribute, `$$` is an object holding all the attributes. |
 
 
 ## Selector attributes

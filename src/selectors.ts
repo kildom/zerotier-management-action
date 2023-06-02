@@ -24,10 +24,28 @@ class Tokenizer {
 
     private tokenize(text: string) {
         text = text.trim();
+
         let endOfCondition = new RegExp(
-            /\][\s\)]*(?:$|(?:OR|AND|\s)(?:\(|\s|(?<=[\s\(\)\[\]])NOT)*\[(?:<FIELDS>)[!=~\$\^\*\/]?=)/
+            /\][\s\)]*(?:$|(?:OR|AND|\s)(?:\(|\s|(?<=[\s\(\)\[\]])NOT)*\[(?:<FIELDS>)[!=~\$\^\*\/\?]?=)/
                 .source
                 .replace('<FIELDS>', this.fields.map(x => escapeRegExp(x)).join('|')));
+        let simpleExpCondition = new RegExp(
+            /^(?:<FIELDS>)[!=~\$\^\*\/\?]?=/
+                .source
+                .replace('<FIELDS>', this.fields.map(x => escapeRegExp(x)).join('|')));
+        let notDirectValueCondition = new RegExp(
+            /(?:<FIELDS>)[!=~\$\^\*\/\?]?=/
+                .source
+                .replace('<FIELDS>', this.fields.map(x => escapeRegExp(x)).join('|')));
+
+        if (!notDirectValueCondition.test(text)) {
+            this.tokens.push(`[${this.fields[0]}=${text}]`);
+            return;
+        } else if (simpleExpCondition.test(text)) {
+            this.tokens.push(`[${text}]`);
+            return;
+        }
+
         while (text !== '') {
             let token: string;
             if (text[0] == '[') {
@@ -54,15 +72,15 @@ class Tokenizer {
     }
 
     public get(): string {
-        return this.index >= this.tokens.length ? END_OF_QUERY : this.tokens[this.index++];
+        return this.index >= this.tokens.length ? END_OF_QUERY : this.tokens[this.index++] as string;
     }
 
     public peek(): string {
-        return this.index >= this.tokens.length ? END_OF_QUERY : this.tokens[this.index];
+        return this.index >= this.tokens.length ? END_OF_QUERY : this.tokens[this.index] as string;
     }
 
     public match(value: string): boolean {
-        let token = this.index >= this.tokens.length ? END_OF_QUERY : this.tokens[this.index];
+        let token = this.index >= this.tokens.length ? END_OF_QUERY : this.tokens[this.index] as string;
         if (token === value) {
             this.index++;
             return true;
@@ -108,20 +126,20 @@ function parseLeaf<T extends Attrs>(tokenizer: Tokenizer): Selector<T> {
     } else {
         let token = tokenizer.get();
         token = token.substring(1, token.length - 1).trimStart();
-        let m = token.match(/^(.*?)([!=~\$\^\*\/]?)=([\S\s]*)$/);
+        let m = token.match(/^(.*?)([!=~\$\^\*\/\?]?)=([\S\s]*)$/);
         if (m === null) {
             throw new Error(`Query syntax error: invalid condition near: ${token}`);
         }
-        let [_, field, condition, value] = m;
+        let [_, field, condition, value] = m as [any, string, string, string];
         if (tokenizer.fields.indexOf(field) < 0) {
             throw new Error(`Query syntax error: unknown field: ${field}`);
         }
-        return createConditionRegExp(field, condition, value);
+        return createConditionFunc(field, condition, value);
     }
 }
 
 
-function createConditionRegExp<T extends Attrs>(field: string, condition: string, value: string): Selector<T> {
+function createConditionFunc<T extends Attrs>(field: string, condition: string, value: string): Selector<T> {
     let escapedValue = escapeRegExp(value);
     let re: RegExp;
     switch (condition) {
@@ -147,6 +165,10 @@ function createConditionRegExp<T extends Attrs>(field: string, condition: string
         case '/':
             re = new RegExp(value, 'si');
             break;
+        case '?': {
+            let func = new Function('$', '$$', `return !!(${value});`);
+            return (n: T) => { return func(n[field] || '', n) };
+        }
         default:
             throw new Error();
     }
@@ -207,12 +229,16 @@ function testQuery(query: string, inputs: Attrs[], expected: boolean[][]) {
     let list = compileSelectors(query, ['a', 'b', 'c']);
     for (let i = 0; i < inputs.length; i++) {
         for (let k = 0; k < list.length; k++) {
-            ASSERT_EQ(list[k](inputs[i]), expected[i][k]);
+            ASSERT_EQ(list[k]!(inputs[i] as Attrs), expected[i]![k]);
         }
     }
 }
 
 export function test() {
+    testTokenizer('12', '[a=12]');
+    testTokenizer('x=12', '[a=x=12]');
+    testTokenizer('a=12', '[a=12]');
+    testTokenizer('a?=This is longer text', '[a?=This is longer text]');
     testTokenizer('[a==12]', '[a==12]');
     testTokenizer('[a!=12] [b~=1.2.3.4]', '[a!=12],[b~=1.2.3.4]');
     testTokenizer('[a!=12] OR [b$=1.2.3.4]', '[a!=12],OR,[b$=1.2.3.4]');
@@ -221,6 +247,7 @@ export function test() {
     testTokenizer('[a!=12] NOT AND [b~=1.2.3.4]', '[a!=12] NOT AND [b~=1.2.3.4]');
     testTokenizer('[a=[11] OR [c=99]]', '[a=[11],OR,[c=99]]');
     testTokenizer('[a==[11] OR [z==99]]', '[a==[11] OR [z==99]]');
+    testTokenizer('[a?=$[0]=="1" && $$.b]', '[a?=$[0]=="1" && $$.b]');
     testQuery('[a==12]', [{ a: '12' }, { a: '123' }, { a: ' 12' }], [[true], [false], [false]]);
     testQuery('[a!=12]', [{ a: '12' }, { a: '123' }, { a: ' 12' }], [[false], [true], [true]]);
     testQuery('[a~=12]', [{ a: 'a 12' }, { a: '12 a' }, { a: ' 12' }, { a: 'b 123 a' }], [[true], [true], [true], [false]]);
@@ -228,6 +255,8 @@ export function test() {
     testQuery('[a^=12]', [{ a: '' }, { a: '12' }, { a: '123' }, { a: '012' }], [[false], [true], [true], [false]]);
     testQuery('[a*=12]', [{ a: '12' }, { a: '123' }, { a: '0123' }, { a: '0132' }], [[true], [true], [true], [false]]);
     testQuery('[a/=1.2]', [{ a: '12' }, { a: '123' }, { a: '122' }], [[false], [false], [true]]);
+    testQuery('[a?=$[0]!="1"]', [{ a: '12' }, { a: '123' }, { a: '234' }], [[false], [false], [true]]);
+    testQuery('[a?=$[0]=="1" && $$.b]', [{ a: '12' }, { a: '123', b: 'OK' }, { a: '234' }], [[false], [true], [false]]);
     testQuery('[a==12] [b=x]', [{ a: '12' }, { a: '123', b: 'x' }, { a: ' 12', b: 'y' }], [[true, false], [false, true], [false, false]]);
     testQuery('[a==12] NOT[b==x]', [{ a: '12' }, { a: '123', b: 'x' }, { a: ' 12', b: 'y' }], [[true, true], [false, false], [false, true]]);
     testQuery('[a=1] OR [a==2]', [{ a: '0' }, { a: '1' }, { a: '2' }, { a: '3' }], [[false], [true], [true], [false]]);
