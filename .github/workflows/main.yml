@@ -10,12 +10,7 @@ on:
 
 jobs:
 
-  StartTestServers:
-    strategy:
-      matrix:
-        include:
-          - number: '1'
-          - number: '2'
+  StartTestServer1:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
@@ -28,40 +23,46 @@ jobs:
         uses: ./
         with:
           auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
-          ip: '192.168.194.25${{ matrix.number }} fde0::25${{ matrix.number }}'
-          name: 'TestServer${{ matrix.number }}'
-      - name: Wait to stop the servers
-        uses: ./
-        with:
-          auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
+          ip: '192.168.194.251 fde0::251'
+          name: 'TestServer1'
+          description: 'First CI Test Server'
+          tags: 'department=engineering'
+          capabilities: 'fast 4'
           wait_for: 'StopTestServers'
           timeout: 60
 
-  Main:
+  StartTestServer2:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: ZeroTier
+        uses: zerotier/github-action@v1.0.1
+        with:
+          network_id: ${{ secrets.ZEROTIER_NETWORK_ID }}
+          auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
+      - name: Start test servers
+        uses: ./
+        with:
+          auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
+          ip: '192.168.194.252 fde0::252'
+          name: 'TestServer2'
+          description: 'Second CI Test Server'
+          tags: '1000=400 floor=first'
+          wait_for: 'StopTestServers'
+          timeout: 60
+
+  Main1:
     strategy:
       matrix:
         include:
           - os: windows-2022
-            ip: '192.168.194.201'
-            ipv6: 'fde0::201'
-          - os: windows-2019
-            ip: '192.168.194.202'
-            ipv6: 'fde0::202'
+            ip: '201'
           - os: ubuntu-22.04
-            ip: '192.168.194.203'
-            ipv6: 'fde0::203'
-          - os: ubuntu-20.04
-            ip: '192.168.194.204'
-            ipv6: 'fde0::204'
+            ip: '203'
           - os: macos-13
-            ip: '192.168.194.205'
-            ipv6: 'fde0::205'
+            ip: '205'
           - os: macos-12
-            ip: '192.168.194.206'
-            ipv6: 'fde0::206'
-          - os: macos-11
-            ip: '192.168.194.207'
-            ipv6: 'fde0::207'
+            ip: '206'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@master
@@ -70,6 +71,7 @@ jobs:
         with:
           network_id: ${{ secrets.ZEROTIER_NETWORK_ID }}
           auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
+
       - name: Build
         shell: bash
         env:
@@ -79,22 +81,115 @@ jobs:
           npm run check
           npm run build
           npm run unit-tests
-      - name: Wait for the test servers
-        id: zerotier
+
+      - name: By name (simple)
+        id: by_name_simple
         uses: ./
         with:
           auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
-          wait_for: '[name=TestServer1] [name=TestServer2]'
+          ip: '192.168.194.${{ matrix.ip }} fde0::${{ matrix.ip }}'
+          wait_for: 'TestServer1'
+          ip_version: 6
           timeout: 7
-      - name: Info
+      - if: ${{ steps.by_name_simple.outputs.wait_for_addresses != 'fde0:0000:0000:0000:0000:0000:0000:0251' }}
+        run: exit 1
+      - if: ${{ steps.by_name_simple.outputs.ip != format('fde0:0000:0000:0000:0000:0000:0000:0{0}', matrix.ip) }}
+        run: exit 1
+
+      - name: By tag and cap
+        id: by_tag_cap
+        uses: ./
+        with:
+          auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
+          wait_for: >
+            [tag:1000==200] AND
+            [tag:department=200] AND
+            [tagEnum:1000=engineering] AND
+            [tagEnum:department=engineering] AND
+            [capabilities~=broken] AND
+            NOT [capabilities~=external] AND
+            NOT [capabilities~=3]
+            [tagEnum:department=manufacturing] AND
+            [tag:1==1] AND
+            NOT ( [capabilities~=fast] OR
+                  [capabilities~=external] OR
+                  [capabilities~=broken] )
+          timeout: 7
+      - if: ${{ steps.by_tag_cap.outputs.wait_for_addresses != '192.168.194.251 192.168.194.252' }}
+        run: exit 1
+      - if: ${{ steps.by_tag_cap.outputs.ip != format('192.168.194.{0}', matrix.ip) }}
+        run: exit 1
+
+  Main2:
+    strategy:
+      matrix:
+        include:
+          - os: windows-2019
+            ip: '202'
+          - os: ubuntu-20.04
+            ip: '204'
+          - os: macos-11
+            ip: '207'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@master
+      - name: ZeroTier
+        uses: zerotier/github-action@v1.0.1
+        with:
+          network_id: ${{ secrets.ZEROTIER_NETWORK_ID }}
+          auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
+
+      - name: Build
         shell: bash
+        env:
+          INPUT_AUTH_TOKEN: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
         run: |
-          echo Your address: ${{ steps.zerotier.outputs.ip }}
-          echo Servers: ${{ steps.zerotier.outputs.wait_for_addresses }}
+          npm ci
+          npm run check
+          npm run build
+          npm run unit-tests
+
+      - name: By names
+        id: by_names
+        uses: ./
+        with:
+          auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
+          ip: '192.168.194.${{ matrix.ip }} fde0::${{ matrix.ip }}'
+          wait_for: '[name=TestServer1] OR [name=TestServer2]'
+          timeout: 7
+      - if: ${{ steps.by_names.outputs.wait_for_addresses != '192.168.194.251' && steps.by_names.outputs.wait_for_addresses != '192.168.194.252' }}
+        run: exit 1
+      - if: ${{ steps.by_names.outputs.ip != format('fde0:0000:0000:0000:0000:0000:0000:0{0}', matrix.ip) }}
+        run: exit 1
+
+      - name: By description
+        id: by_desc
+        uses: ./
+        with:
+          auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
+          wait_for: '[description^=Second] [description^=First]'
+          timeout: 7
+      - if: ${{ steps.by_desc.outputs.wait_for_addresses != '192.168.194.252 192.168.194.251' }}
+        run: exit 1
+      - if: ${{ steps.by_desc.outputs.ip != format('192.168.194.{0}', matrix.ip) }}
+        run: exit 1
+
+      - name: Timeout
+        id: timeout
+        uses: ./
+        with:
+          auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
+          wait_for: '[description=This node does not exists]'
+          timeout: 1?
+      - if: ${{ steps.timeout.outputs.timeout == false }}
+        run: exit 1
+      - if: ${{ steps.timeout.outputs.timeout == true }}
+        run: echo OK
 
   StopTestServers:
     runs-on: ubuntu-latest
-    needs: Main
+    needs: [Main1, Main2]
+    if: ${{ always() }}
     steps:
       - uses: actions/checkout@master
       - name: ZeroTier
