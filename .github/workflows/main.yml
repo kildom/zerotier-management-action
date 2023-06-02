@@ -215,9 +215,9 @@ jobs:
           auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
           wait_for: '[description=This node does not exists]'
           timeout: 1?
-      - if: ${{ steps.timeout.outputs.timeout == false }}
+      - if: ${{ steps.timeout.outputs.timeout == 'false' }}
         run: exit 1
-      - if: ${{ steps.timeout.outputs.timeout == true }}
+      - if: ${{ steps.timeout.outputs.timeout == 'true' }}
         run: echo OK
 
   StopTestServers:

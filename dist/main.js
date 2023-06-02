@@ -2251,7 +2251,7 @@ function prepareInputsOutputs() {
 function writeOutputs() {
   core.setOutput("ip", outputs.ip);
   core.setOutput("wait_for_addresses", outputs.wait_for_addresses.join(" "));
-  core.setOutput("timeout", outputs.timeout ? "true" : "false");
+  core.setOutput("timeout", outputs.timeout);
   console.log("Outputs:", JSON.stringify(outputs, null, 4));
 }
 function isTimeout() {
