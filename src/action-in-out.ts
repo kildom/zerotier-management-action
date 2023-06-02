@@ -77,7 +77,7 @@ export function writeOutputs() {
 
 export function isTimeout(): boolean {
     if (inputs.timeout > 0) {
-        let time = (Date.now() - startTime) / 1000;
+        let time = (Date.now() - startTime) / 60000;
         if (time > inputs.timeout) {
             outputs.timeout = true;
             if (inputs.timeout_fatal) {

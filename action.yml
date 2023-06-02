@@ -50,7 +50,7 @@ inputs:
     required: false
     default: ''
     description: >
-      Number of seconds to wait for other nodes. On timeout, the action will fail unless you
+      Number of minutes to wait for other nodes. On timeout, the action will fail unless you
       add "?" after the time. Wait forever by default.
   ip_version:
     required: false

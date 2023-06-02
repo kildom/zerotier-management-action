@@ -2255,7 +2255,7 @@ function writeOutputs() {
 }
 function isTimeout() {
   if (inputs.timeout > 0) {
-    let time = (Date.now() - startTime) / 1e3;
+    let time = (Date.now() - startTime) / 6e4;
     if (time > inputs.timeout) {
       outputs.timeout = true;
       if (inputs.timeout_fatal) {
