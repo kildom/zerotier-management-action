@@ -2494,6 +2494,7 @@ function compileSelectors(text, fields) {
 
 // src/zt-api.ts
 var import_https = require("https");
+var RETRY_COUNT = 5;
 async function execAPI(method, path, body) {
   let apiURL = inputs.api_url;
   if (!apiURL.endsWith("/")) {
@@ -2502,39 +2503,53 @@ async function execAPI(method, path, body) {
   let apiHeaders = {
     "Authorization": `token ${inputs.auth_token}`
   };
+  let retryCounter = 0;
   let resolve, reject;
-  let promise = new Promise((a, b) => {
-    resolve = a;
-    reject = b;
-  });
-  let req = (0, import_https.request)(apiURL + path, {
-    method,
-    headers: apiHeaders
-  }, (res2) => {
-    resolve(res2);
-  });
-  req.on("error", reject);
-  if (body) {
-    req.write(JSON.stringify(body));
+  while (true) {
+    try {
+      let promise = new Promise((a, b) => {
+        resolve = a;
+        reject = b;
+      });
+      let req = (0, import_https.request)(apiURL + path, {
+        method,
+        headers: apiHeaders
+      }, (res2) => {
+        resolve(res2);
+      });
+      req.on("error", reject);
+      if (body) {
+        req.write(JSON.stringify(body));
+      }
+      req.end();
+      let res = await promise;
+      let promise2 = new Promise((a, b) => {
+        resolve = a;
+        reject = b;
+      });
+      let chunks = [];
+      res.setEncoding("utf8");
+      res.on("error", reject);
+      res.on("end", resolve);
+      res.on("data", (chunk) => {
+        chunks.push(chunk);
+      });
+      await promise2;
+      if (res.statusCode != 200) {
+        throw new Error(`REST API HTTP status code: ${res.statusCode} ${res.statusMessage}`);
+      }
+      return JSON.parse(chunks.join(""));
+    } catch (e) {
+      if (retryCounter >= RETRY_COUNT) {
+        throw e;
+      }
+      let waitTime = Math.round(3e3 * Math.pow(1.6, retryCounter));
+      console.log(`API error, retrying after ${waitTime}ms: `, e);
+      await new Promise((resolve2) => setTimeout(resolve2, waitTime));
+      retryCounter++;
+    }
   }
-  req.end();
-  let res = await promise;
-  let promise2 = new Promise((a, b) => {
-    resolve = a;
-    reject = b;
-  });
-  let chunks = [];
-  res.setEncoding("utf8");
-  res.on("error", reject);
-  res.on("end", resolve);
-  res.on("data", (chunk) => {
-    chunks.push(chunk);
-  });
-  await promise2;
-  if (res.statusCode != 200) {
-    throw new Error(`REST API HTTP status code: ${res.statusCode} ${res.statusMessage}`);
-  }
-  return JSON.parse(chunks.join(""));
+  ;
 }
 
 // src/zt-cli.ts
