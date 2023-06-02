@@ -26,7 +26,7 @@ jobs:
           auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
           wait_for: '[name=TestServer1] [name=TestServer2] [name=StopTestServers] [name^=tester-]'
           wait_for_unavailable: true
-          timeout: 60
+          timeout: 15
 
   StartTestServer1:
     needs: WaitForEndOfPreviousBuild
@@ -48,7 +48,7 @@ jobs:
           tags: 'department=engineering'
           capabilities: 'fast 4'
           wait_for: 'StopTestServers'
-          timeout: 60
+          timeout: 10
 
   StartTestServer2:
     needs: WaitForEndOfPreviousBuild
@@ -69,7 +69,7 @@ jobs:
           description: 'Second CI Test Server'
           tags: '1000=400 floor=first'
           wait_for: 'StopTestServers'
-          timeout: 60
+          timeout: 10
 
   Main1:
     needs: WaitForEndOfPreviousBuild
@@ -112,7 +112,7 @@ jobs:
           name: tester-${{ matrix.os }}
           wait_for: 'TestServer1'
           ip_version: 6
-          timeout: 7
+          timeout: 5
       - if: ${{ steps.by_name_simple.outputs.wait_for_addresses != 'fde0::251' }}
         run: exit 1
       - if: ${{ steps.by_name_simple.outputs.ip != format('fde0::{0}', matrix.ip) }}
@@ -136,7 +136,7 @@ jobs:
             NOT ( [capabilities~=fast] OR
                   [capabilities~=external] OR
                   [capabilities~=broken] )
-          timeout: 7
+          timeout: 5
       - if: ${{ steps.by_tag_cap.outputs.wait_for_addresses != '192.168.194.251 192.168.194.252' }}
         run: exit 1
       - if: ${{ steps.by_tag_cap.outputs.ip != format('192.168.194.{0}', matrix.ip) }}
@@ -180,7 +180,8 @@ jobs:
           ip: '192.168.194.${{ matrix.ip }} fde0::${{ matrix.ip }}'
           name: tester-${{ matrix.os }}
           wait_for: '[name=TestServer1] OR [name=TestServer2]'
-          timeout: 7
+          ip_version: 6
+          timeout: 5
       - if: ${{ steps.by_names.outputs.wait_for_addresses != '192.168.194.251' && steps.by_names.outputs.wait_for_addresses != '192.168.194.252' }}
         run: exit 1
       - if: ${{ steps.by_names.outputs.ip != format('fde0::{0}', matrix.ip) }}
@@ -192,7 +193,7 @@ jobs:
         with:
           auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
           wait_for: '[description^=Second] [description^=First]'
-          timeout: 7
+          timeout: 5
       - if: ${{ steps.by_desc.outputs.wait_for_addresses != '192.168.194.252 192.168.194.251' }}
         run: exit 1
       - if: ${{ steps.by_desc.outputs.ip != format('192.168.194.{0}', matrix.ip) }}
@@ -236,4 +237,4 @@ jobs:
           auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
           wait_for: '[name=TestServer1] [name=TestServer2]'
           wait_for_unavailable: true
-          timeout: 60
+          timeout: 7
