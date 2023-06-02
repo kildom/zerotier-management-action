@@ -1,7 +1,8 @@
 # ZeroTier Management Action
 
-This Action is designed to work after the [zerotier/github-action](https://github.com/marketplace/actions/zerotier).
-The *ZeroTier Management Action* can adjust a local network member configuration and wait for the others to be ready.
+This action should be executed after the [zerotier/github-action](https://github.com/marketplace/actions/zerotier) to manage your local and remote network members.
+
+## Sample Usage
 
 ```yaml
 - uses: zerotier/github-action@v1.0.1
@@ -20,41 +21,77 @@ The *ZeroTier Management Action* can adjust a local network member configuration
     echo Server address: ${{ steps.zerotier.outputs.wait_for_addresses }}
 ```
 
-## How it works
+## Full Usage
 
-The Action:
+```yaml
+- uses: kildom/zerotier-management-action
+  id: zerotier
+  with:
+    # Your ZeroTier Central API Access Token: https://my.zerotier.com/account
+    auth_token: '0123456789abcdef0123456789abcdef'
 
- 1. changes local ZeroTier-One network member configuration using values provided in the action inputs.
- 1. waits for other network members to be ready, which means that:
-    * member is online,
-    * member IP address is available,
-    * member fulfils conditions contained in the `wait_for` input.
- 1. waits for local IP address to be:
-    * available,
-    * updated to new value if `ip` input was provided.
+    # If provided, change IPv4 and IPv6 addresses (space-separated list).
+    ip: '192.168.245.101'
 
-Above conditions not always guarantee that a network connection can be established immediately.
-You should use other methods to check it. For example, do `ping` or check open ports.
+    # If provided, change the name.
+    name: 'Test Client'
 
-## Setting local node configuration
+    # If provided, change the description.
+    description: 'Client node on Github Action Runner'
 
-You can set the local node configuration with following inputs.
-New values will overwrite the old ones.
-If you skip any of the option, it will be unchanged.
+    # If provided, change tags (space-separated list of "key=value" pairs).
+    # The tags must be defined in the ZeroTier Central first.
+    tags: 'location=cloud cpus=2'
 
-| Input name | Type | Description |
-|-|-|-|
-| `name` | string | Name |
-| `description` | string | Description |
-| `ip` | space-separated list | IPv4 and IPv6 addresses that will be assigned to local node. Old addresses will be overridden. |
-| `capabilities` | space-separated list | You can use name or numeric id of the capability. Capabilities must be defined in the *Flow Rules* with the `cap` keyword. |
-| `tags` | space-separated list of `key=value` items | You can use name or numeric id of the both key and value. Tags must be defined in the *Flow Rules* with the `tag` keyword. |
+    # If provided, change capabilities (space-separated list).
+    # The capabilities must be defined in the ZeroTier Central first.
+    capabilities: 'with_gcc with_java'
 
-## Waiting for other nodes
+    # Name of the member that you want to wait for or a list of expressions
+    # describing the members that you want to wait for. See README to learn
+    # how to write an expression.
+    wait_for: 'Test Server'
 
-You can wait for one or more nodes.
-The `wait_for` input contains a flexible expression that describes nodes that you wish to wait for.
-As a result, you will get space-separated list of IP addresses in the `wait_for_addresses` output that matches `wait_for` list.
+    # Number of minutes to wait for other members. On timeout, the action
+    # will fail unless you append the "?" sign after the number. It waits
+    # forever by default.
+    timeout: 10
+
+    # A number telling which IP address version should be used, "4" or "6".
+    # You can append the "?" sign to allow a different version if the
+    # specified version is not available, e.g. "6?" will use IPv6, if
+    # available, otherwise IPv4.
+    # Default: 4
+    ip_version: 4
+
+    # Invert meaning of "wait_for" input. In other words, wait until all
+    # members from "wait_for" become unavailable.
+    # Default: false
+    wait_for_unavailable: false
+
+    # ZeroTier Central API URL
+    # Default: https://my.zerotier.com/api/v1
+    api_url: 'https://my.zerotier.com/api/v1'
+
+- run: |
+
+    # The IP address that is assigned to the local member.
+    echo ${{ steps.zerotier.outputs.ip }}
+
+    # Address of each member that you waited for (space-separated list).
+    echo ${{ steps.zerotier.outputs.wait_for_addresses }}
+
+    # "true" or "false" indicating if a timeout occurred.
+    echo ${{ steps.zerotier.outputs.timeout }}
+```
+
+In ZeroTier network, IP address availability not always guarantee that a network connection can be established immediately.
+You should use other methods to check it. For example, do `ping` or check for open ports.yword. |
+
+## Waiting for other members
+
+The `wait_for` input allows you to wait for a network member with specified name. In many cases, this is not enough.
+With the `wait_for` input, you can wait for multiple members and describe them in a very flexible way using expressions.
 
 If you want to wait for two servers named `Storage` and `Database`, you can do: 
 
@@ -62,7 +99,7 @@ If you want to wait for two servers named `Storage` and `Database`, you can do:
 wait_for: '[name=Storage] [name=Database]'
 ```
 
-As an example, you will get following `wait_for_addresses` output:
+You can get then following `wait_for_addresses` output:
 
 ```
 192.168.41.212 192.168.41.8
@@ -70,10 +107,10 @@ As an example, you will get following `wait_for_addresses` output:
 
 Where `192.168.41.212` is `Storage` server and `192.168.41.8` is `Database` server.
 
-If multiple nodes fulfills one expression, just one of them is taken into account.
-If one node fulfills multiple expressions, it will be assigned to the first expression.
+If multiple members fulfills one expression, just one of them is taken into account.
+If one member fulfills multiple expressions, it will be assigned to the first expression.
 
-If you have multiple nodes of the same kind, you can repeat the same expression, for example:
+If you have multiple members of the same kind, you can repeat the same expression, for example:
 
 ```yaml
 wait_for: '[name^=Build server] [name^=Build server] [name^=Build server]'
@@ -81,4 +118,4 @@ wait_for: '[name^=Build server] [name^=Build server] [name^=Build server]'
 
 In the `wait_for_addresses` output, you will get three IP addresses of servers which names start with `Build server`.
 
-Detailed syntax description is in the [Expression syntax details](docs/selectors.md).
+Detailed syntax description is in the [Expression syntax details](docs/expressions.md).

@@ -1,77 +1,91 @@
 name: 'ZeroTier Management Action'
-description: 'Adjust local ZeroTier-One node and query other network nodes.'
+description: 'Adjust the local ZeroTier-One member and query other network members.'
 inputs:
   auth_token:
     required: true
     description: >
       Your ZeroTier Central API Access Token: https://my.zerotier.com/account
-  api_url:
-    required: false
-    default: "https://my.zerotier.com/api/v1"
-    description: >
-      ZeroTier Central API URL
+    # Sample value: '0123456789abcdef0123456789abcdef'
   ip:
     required: false
     default: ''
     description: >
-      Change IP addresses of local node (space separated list). Both IPv4 and IPv6 are acceptable.
-      Unchanged by default.
+      If provided, change IPv4 and IPv6 addresses (space-separated list).
+    # Sample value: '192.168.245.101'
   name:
     required: false
     default: ''
     description: >
-      Change name of local node.
-      Unchanged by default.
+      If provided, change the name.
+    # Sample value: 'Test Client'
   description:
     required: false
     default: ''
     description: >
-      Change description of local node.
-      Unchanged by default.
+      If provided, change the description.
+    # Sample value: 'Client node on Github Action Runner'
   tags:
     required: false
     default: ''
     description: >
-      Change tags of local node  (space separated list of "key=value" pairs).
-      Unchanged by default.
+      If provided, change tags (space-separated list of "key=value" pairs).
+      The tags must be defined in the ZeroTier Central first.
+    # Sample value: 'location=cloud cpus=2'
   capabilities:
     required: false
     default: ''
     description: >
-      Change capabilities of local node (space separated list).
-      Unchanged by default.
+      If provided, change capabilities (space-separated list).
+      The capabilities must be defined in the ZeroTier Central first.
+    # Sample value: 'with_gcc with_java'
   wait_for:
     required: false
     default: ''
     description: >
-      Name of the node that you want to wait for or a list of expressions defining the nodes
-      that you want to wait for. See README for details about expressions.
+      Name of the member that you want to wait for or a list of expressions
+      describing the members that you want to wait for. See README to learn
+      how to write an expression.
+    # Sample value: 'Test Server'
   timeout:
     required: false
     default: ''
     description: >
-      Number of minutes to wait for other nodes. On timeout, the action will fail unless you
-      add "?" after the time. Wait forever by default.
+      Number of minutes to wait for other members. On timeout, the action
+      will fail unless you append the "?" sign after the number. It waits
+      forever by default.
+    # Sample value: 10
   ip_version:
     required: false
     default: '4'
     description: >
-      A number telling which IP address version should be used, "4" or "6". You can add "?" to
-      allow a different version if specified version is not available, e.g. "6?" use IPv6,
-      but if not available, it will fall back to IPv4.
+      A number telling which IP address version should be used, "4" or "6".
+      You can append the "?" sign to allow a different version if the
+      specified version is not available, e.g. "6?" will use IPv6, if
+      available, otherwise IPv4.
+    # Sample value: 4
   wait_for_unavailable:
     required: false
     default: false
     description: >
-      Wait until all nodes from "wait_for" become unavailable.
-      Normal wait be default.
+      Invert meaning of "wait_for" input. In other words, wait until all
+      members from "wait_for" become unavailable.
+    # Sample value: false
+  api_url:
+    required: false
+    default: 'https://my.zerotier.com/api/v1'
+    description: >
+      ZeroTier Central API URL
+    # Sample value: 'https://my.zerotier.com/api/v1'
 outputs:
   ip:
-    description: 'The IP address assigned to local node.'
+    description: >
+      The IP address that is assigned to the local member.
   wait_for_addresses:
-    description: 'Address of each node that you waited for (space separated list).'
+    description: >
+      Address of each member that you waited for (space-separated list).
   timeout:
-    description: '"true" or "false" indicating if timeout occurred.'
+    description: >
+      "true" or "false" indicating if a timeout occurred.
 runs:
   using: 'node16'
   main: 'dist/main.js'

@@ -213,7 +213,7 @@ jobs:
         uses: ./
         with:
           auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
-          wait_for: '[description=This node does not exists]'
+          wait_for: '[description=This member does not exists]'
           timeout: 1?
       - if: ${{ steps.timeout.outputs.timeout == 'false' }}
         run: exit 1
