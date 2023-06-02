@@ -2092,7 +2092,7 @@ var require_core = __commonJS({
       return inputs2.map((input) => input.trim());
     }
     exports.getMultilineInput = getMultilineInput;
-    function getBooleanInput(name, options) {
+    function getBooleanInput2(name, options) {
       const trueValue = ["true", "True", "TRUE"];
       const falseValue = ["false", "False", "FALSE"];
       const val = getInput2(name, options);
@@ -2103,7 +2103,7 @@ var require_core = __commonJS({
       throw new TypeError(`Input does not meet YAML 1.2 "Core Schema" specification: ${name}
 Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
     }
-    exports.getBooleanInput = getBooleanInput;
+    exports.getBooleanInput = getBooleanInput2;
     function setOutput2(name, value) {
       const filePath = process.env["GITHUB_OUTPUT"] || "";
       if (filePath) {
@@ -2216,7 +2216,7 @@ var core2 = __toESM(require_core());
 
 // src/action-in-out.ts
 var core = __toESM(require_core());
-var WAIT_INTERVAL = 3e3;
+var WAIT_INTERVAL = 5e3;
 var inputs = {};
 var outputs = {};
 var startTime = Date.now();
@@ -2239,7 +2239,8 @@ function prepareInputsOutputs() {
     wait_for: core.getInput("wait_for"),
     timeout: parseFloat(core.getInput("timeout")),
     timeout_fatal: !core.getInput("timeout").endsWith("?"),
-    ip_version: core.getInput("ip_version")
+    ip_version: core.getInput("ip_version"),
+    wait_for_unavailable: core.getBooleanInput("wait_for_unavailable")
   };
   outputs = {
     ip: "",
@@ -2670,9 +2671,15 @@ async function waitForNodes() {
         }
       }
     }
-    if (matched.findIndex((attr) => attr === null) < 0) {
-      outputs.wait_for_addresses = matched.map((attr) => attr.address);
-      break;
+    if (inputs.wait_for_unavailable) {
+      if (matched.every((attr) => attr === null)) {
+        break;
+      }
+    } else {
+      if (matched.findIndex((attr) => attr === null) < 0) {
+        outputs.wait_for_addresses = matched.map((attr) => attr.address);
+        break;
+      }
     }
     if (isTimeout()) {
       break;
