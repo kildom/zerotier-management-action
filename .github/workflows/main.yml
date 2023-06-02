@@ -1,32 +1,30 @@
-name: Build
+name: Test
 
 on:
-  - workflow_call
   - workflow_dispatch
-  
+
 jobs:
-  build:
+  main:
     strategy:
       matrix:
         include:
-          - os: ubuntu-20.04
-            params: "ubuntu 20"
+          - os: windows-2022
+          - os: windows-2019
           - os: ubuntu-22.04
-            params: "ubuntu 22"
-          - os: windows-latest
-            params: "windows"
+          - os: ubuntu-20.04
+          - os: macos-13
+          - os: macos-12
+          - os: macos-11
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checking out our code
         uses: actions/checkout@master
       - name: Build
         shell: bash
+        env:
+          INPUT_AUTH_TOKEN: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
         run: |
-          build/build.sh ${{ matrix.params }}
-      - name: Upload a Build Artifact
-        uses: actions/upload-artifact@v3.1.2
-        with:
-          name: results
-          path: build/tmp/*.tar.xz
-          if-no-files-found: error
-          retention-days: 2
+          npm ci
+          npm run check
+          npm run build
+          npm run unit-tests

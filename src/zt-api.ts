@@ -52,7 +52,7 @@ export async function execAPI(method: 'GET' | 'POST' | 'DELETE', path: string, b
 
 export async function test() {
     inputs.api_url = 'https://my.zerotier.com/api/v1';
-    inputs.auth_token = process.env.TOKEN as string;
+    inputs.auth_token = process.env.INPUT_AUTH_TOKEN as string;
     let res = await execAPI('GET', `randomToken`);
     ASSERT_EQ(res.token.length, 32);
 }
