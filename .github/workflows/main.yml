@@ -27,6 +27,15 @@ jobs:
           wait_for: '[name=TestServer1] [name=TestServer2] [name=StopTestServers] [name^=tester-]'
           wait_for_unavailable: true
           timeout: 15
+      - run: sleep 30
+      - name: Wait again just to be sure
+        id: wait2
+        uses: ./
+        with:
+          auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
+          wait_for: '[name=TestServer1] [name=TestServer2] [name=StopTestServers] [name^=tester-]'
+          wait_for_unavailable: true
+          timeout: 15
 
   StartTestServer1:
     needs: WaitForEndOfPreviousBuild
@@ -231,7 +240,7 @@ jobs:
         shell: bash
         run: sleep 60
       - name: Wait for shutdown of test servers
-        id: wait2
+        id: wait3
         uses: ./
         with:
           auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
