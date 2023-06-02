@@ -182,7 +182,7 @@ jobs:
           wait_for: '[name=TestServer1] OR [name=TestServer2]'
           ip_version: 6
           timeout: 5
-      - if: ${{ steps.by_names.outputs.wait_for_addresses != '192.168.194.251' && steps.by_names.outputs.wait_for_addresses != '192.168.194.252' }}
+      - if: ${{ steps.by_names.outputs.wait_for_addresses != 'fde0::251' && steps.by_names.outputs.wait_for_addresses != 'fde0::252' }}
         run: exit 1
       - if: ${{ steps.by_names.outputs.ip != format('fde0::{0}', matrix.ip) }}
         run: exit 1
