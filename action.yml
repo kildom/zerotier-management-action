@@ -1,7 +1,8 @@
 name: 'ZeroTier Management Action'
 description: 'Adjust the local ZeroTier-One member and query other network members.'
-icon: globe
-color: red
+branding:
+  icon: globe
+  color: red
 inputs:
   auth_token:
     required: true
