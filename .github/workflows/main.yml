@@ -85,14 +85,20 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: windows-2022
+          - os: ubuntu-latest
             ip: '201'
           - os: ubuntu-22.04
+            ip: '202'
+          - os: ubuntu-24.04-arm
             ip: '203'
-          - os: macos-13
+          # - os: windows-2025
+          #   ip: '204'
+          - os: windows-11-arm
             ip: '205'
-          - os: macos-12
+          - os: macos-15-intel
             ip: '206'
+          - os: macos-26 
+            ip: '207'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@master
@@ -156,12 +162,22 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: windows-2019
-            ip: '202'
-          - os: ubuntu-20.04
-            ip: '204'
-          - os: macos-11
-            ip: '207'
+          # - os: ubuntu-slim
+          #   ip: '211'
+          - os: ubuntu-24.04
+            ip: '212'
+          - os: ubuntu-22.04-arm
+            ip: '213'
+          - os: windows-latest
+            ip: '214'
+          - os: windows-2022
+            ip: '215'
+          - os: macos-latest
+            ip: '216'
+          - os: macos-14
+            ip: '217'
+          - os: macos-15
+            ip: '218'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@master
